@@ -1,13 +1,15 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { GoogleGenAI, Type } from '@google/genai';
 import { Player } from '../models/player.model';
 import { Recommendation } from '../models/recommendation.model';
+import { KnowledgeBaseService } from './knowledge-base.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class GeminiService {
   private ai: GoogleGenAI | null = null;
+  private knowledgeBaseService = inject(KnowledgeBaseService);
 
   constructor() {
     // IMPORTANT: This check is needed because process.env is not available in all contexts.
@@ -29,6 +31,9 @@ export class GeminiService {
     if (!this.ai) {
         throw new Error("Gemini API key not configured. Cannot get recommendations.");
     }
+
+    // Fetch the knowledge base
+    const knowledgeBase = await this.knowledgeBaseService.getKnowledgeBase();
     
     // Filter for relevant player data to keep the prompt concise
     const relevantPlayers = players.map(p => ({
@@ -54,7 +59,7 @@ export class GeminiService {
           type: Type.OBJECT,
           description: "The best possible 11-player lineup from the user's existing club.",
           properties: {
-            formation: { type: Type.STRING, description: "A standard formation like '4-3-3' or '4-4-2'." },
+            formation: { type: Type.STRING, description: "A standard formation like '4-1-3-2' or '4-4-2'." },
             players: {
               type: Type.ARRAY,
               description: "An array of exactly 11 players for the starting lineup.",
@@ -97,23 +102,28 @@ export class GeminiService {
       }
     };
 
-    const systemInstruction = `You are a world-class expert EA FC Ultimate Team analyst and squad builder. Your knowledge is based on real-world player performance, in-game stats, chemistry, and market prices from sources like FUTBIN. Your goal is to give concrete, actionable advice to improve a user's squad based on their current players and coin budget. You must provide full chemistry information (nation, league, club) for every single player you recommend. You must adhere strictly to the provided JSON schema for your response.`;
+    const systemInstruction = `You are a world-class expert EA FC 26 Ultimate Team analyst and squad builder. Your knowledge is based on real-world player performance, in-game stats, chemistry, and market prices from sources like FUTBIN. Your goal is to give concrete, actionable advice to improve a user's squad based on their current players and coin budget. You must provide full chemistry information (nation, league, club) for every single player you recommend. You must adhere strictly to the provided JSON schema for your response.`;
     
     const formationInstruction = formation
       ? `The user has specified a preferred formation: ${formation}. Prioritize this formation. If it is a very poor fit for the players, you may suggest a better one, but you must explain why in the summary.`
-      : `Analyze the user's players and determine the absolute best, most "meta" formation for them (e.g., 4-3-2-1, 4-4-2, 3-5-2). Then, build the best possible 11-player starting lineup in that formation.`;
+      : `Analyze the user's players and determine the absolute best, most "meta" formation for them (e.g., 4-1-3-2, 5-2-3, 4-2-3-1), referencing the provided knowledge base. Then, build the best possible 11-player starting lineup in that formation.`;
 
     const prompt = `
-      Here is the user's current club as a JSON list of players:
+      First, review this comprehensive knowledge base for the EA FC 26 meta. It contains crucial details on new in-game stats (like Tactical Intelligence and Off-Ball Movement), dominant formations, top-tier PlayStyles+, and specific player archetypes. This information is your primary source of truth and must heavily influence all your analysis and recommendations.
+      <knowledge_base>
+      ${JSON.stringify(knowledgeBase, null, 2)}
+      </knowledge_base>
+
+      Now, here is the user's current club as a JSON list of players:
       ${JSON.stringify(relevantPlayers.slice(0, 200))} 
       
       The user's coin budget is: ${coins} coins.
 
       Analyze the provided club and budget. Your task is to:
-      1.  ${formationInstruction} Prioritize high-rated players in their preferred positions. Include full chemistry details (league, nation, team).
-      2.  Identify the weakest players in that starting lineup.
-      3.  Suggest specific, affordable player upgrades for those weak positions that are within the user's budget. Include the new player's name, league, nation, and club.
-      4.  Provide a brief summary of your strategy.
+      1.  ${formationInstruction} Prioritize high-rated players in their preferred positions. Include full chemistry details (league, nation, team). Your formation and player choices should be heavily influenced by the provided knowledge base.
+      2.  Identify the weakest players in that starting lineup based on the meta player archetypes in the knowledge base.
+      3.  Suggest specific, affordable player upgrades for those weak positions that are within the user's budget. The suggested players should fit the meta and ideally have some of the recommended PlayStyles from the knowledge base. Include the new player's name, league, nation, and club.
+      4.  Provide a brief summary of your strategy, explaining how your choices align with the meta described in the knowledge base.
 
       Base your upgrade suggestions on real players available in the game that would be an improvement. Ensure the total cost of all suggested upgrades does not exceed the user's budget.
     `;

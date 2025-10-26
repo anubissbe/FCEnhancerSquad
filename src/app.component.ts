@@ -28,10 +28,10 @@ export class AppComponent {
   readonly placeholderImageUrl = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239ca3af'%3E%3Cpath fill-rule='evenodd' d='M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12.54-1.285A7.486 7.486 0 0112 15a7.486 7.486 0 015.855 2.812A8.224 8.224 0 0112 20.25a8.224 8.224 0 01-5.855-2.438zM15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z' clip-rule='evenodd' /%3E%3C/svg%3E`;
   readonly formations = [
     '3-1-4-2', '3-4-1-2', '3-4-2-1', '3-4-3', '3-5-2',
-    '4-1-2-1-2', '4-1-2-1-2 (2)', '4-2-2-2', '4-2-3-1', '4-2-3-1 (2)',
+    '4-1-2-1-2', '4-1-2-1-2 (2)', '4-1-3-2', '4-2-2-2', '4-2-3-1', '4-2-3-1 (2)',
     '4-3-2-1', '4-3-3', '4-3-3 (2)', '4-3-3 (3)', '4-3-3 (4)', '4-3-3 (5)',
     '4-4-1-1', '4-4-2', '4-4-2 (2)', '4-5-1', '4-5-1 (2)',
-    '5-2-1-2', '5-2-2-1', '5-3-2', '5-4-1'
+    '5-2-1-2', '5-2-2-1', '5-2-3', '5-3-2', '5-4-1'
   ];
 
   players = signal<Player[]>([]);
@@ -399,7 +399,7 @@ export class AppComponent {
 
         // Generate the Futwiz face image URL or use a placeholder
         if (player.DefinitionId) {
-            player.imageUrl = `https://www.futwiz.com/assets/img/fc24/faces/${player.DefinitionId}.png`;
+            player.imageUrl = `https://www.futwiz.com/assets/img/fc26/faces/${player.DefinitionId}.png`;
         } else {
             player.imageUrl = this.placeholderImageUrl;
         }
