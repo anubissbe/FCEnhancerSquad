@@ -1,0 +1,271 @@
+<div class="min-h-screen p-4 sm:p-6 md:p-8 transition-colors duration-300">
+  <div class="max-w-7xl mx-auto relative">
+    
+    <!-- Theme Toggle Button -->
+    <div class="absolute top-0 right-0">
+      <button (click)="toggleDarkMode()" class="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-900 focus:ring-green-500 transition-colors">
+        @if (isDarkMode()) {
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+          </svg>
+        }
+      </button>
+    </div>
+
+    <header class="text-center mb-8">
+      <h1 class="text-4xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-500 to-teal-600 dark:from-green-400 dark:to-teal-500">
+        FUT Squad Improver
+      </h1>
+      <p class="text-lg text-gray-600 dark:text-gray-400 mt-2">
+        Get AI-powered recommendations to build your ultimate team.
+      </p>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Left Column: Controls -->
+      <div class="lg:col-span-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 flex flex-col space-y-6 h-fit">
+        <h2 class="text-2xl font-semibold border-b border-gray-200 dark:border-gray-700 pb-3">1. Your Club & Budget</h2>
+
+        <div>
+          <label for="file-upload" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Upload Club CSV</label>
+          <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md">
+            <div class="space-y-1 text-center">
+              <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+              <div class="flex text-sm text-gray-600 dark:text-gray-400">
+                <label for="file-upload" class="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-green-600 dark:text-green-400 hover:text-green-500 dark:hover:text-green-300 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-offset-gray-100 dark:focus-within:ring-offset-gray-800 focus-within:ring-green-500">
+                  <span>Upload a file</span>
+                  <input id="file-upload" name="file-upload" type="file" class="sr-only" (change)="onFileSelect($event)" accept=".csv">
+                </label>
+                <p class="pl-1">or drag and drop</p>
+              </div>
+              @if (fileName()) {
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 truncate">{{ fileName() }} ({{ players().length }} players)</p>
+              } @else {
+                <p class="text-xs text-gray-500">CSV file from EA App</p>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label for="coin-balance" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Coin Balance</label>
+          <div class="mt-1 relative rounded-md shadow-sm">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                 <path d="M8.433 7.418c.158-.103.346-.196.567-.267v1.698a2.5 2.5 0 00-1.134 0v-1.43zM1.166 11.898c1.011.458 2.22.735 3.513.87v-1.63a3.001 3.001 0 01-3.513-.24zM10 2a8 8 0 100 16 8 8 0 000-16zM3.528 6.012c-1.293.135-2.502.412-3.513.87v1.63a3.001 3.001 0 013.513-.24V6.012zM7.866 12.93c.158.103.346.196.567.267v-1.698a2.5 2.5 0 00-1.134 0v1.43zm3.268.267c.22-.07.408-.164.566-.267v-1.43a2.5 2.5 0 00-1.133 0v1.698zM15.34 11.108a3.001 3.001 0 01-3.513.24v1.63c1.293-.135 2.502-.412 3.513-.87v-1.63zM15.34 6.882a3.001 3.001 0 01-3.513-.24V5.012c1.293.135 2.502.412 3.513.87v1.63zM11.134 9.082a2.5 2.5 0 00-1.134 0V7.65c.22.07.408.164.566.267v1.165z" />
+              </svg>
+            </div>
+            <input type="number" name="coin-balance" id="coin-balance" class="focus:ring-green-500 focus:border-green-500 block w-full pl-10 sm:text-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-md" placeholder="50000" [value]="coinBalance()" (input)="updateCoinBalance($event)">
+          </div>
+        </div>
+
+        <div class="flex space-x-2">
+            <button (click)="saveData()" [disabled]="players().length === 0" class="w-full py-2 px-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-800 focus:ring-gray-500 disabled:bg-gray-400 dark:disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors">Save</button>
+            <button (click)="loadData()" [disabled]="!hasSavedData()" class="w-full py-2 px-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-800 focus:ring-gray-500 disabled:bg-gray-400 dark:disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors">Load</button>
+        </div>
+
+
+        <button (click)="onImproveSquad()" [disabled]="isLoading() || players().length === 0"
+          class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-800 focus:ring-green-500 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors">
+          @if (isLoading()) {
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Analyzing...</span>
+          } @else {
+            <svg class="w-5 h-5 mr-2 -ml-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10.73 1.282c.96-.563 2.112-.563 3.071 0l5.429 3.172a2 2 0 011.037 1.718V13.83c0 .77-.42 1.474-1.037 1.718l-5.43 3.172c-.959.563-2.111.563-3.07 0l-5.429-3.172a2 2 0 01-1.037-1.718V6.172a2 2 0 011.037-1.718L10.73 1.282zM12 12a2 2 0 100-4 2 2 0 000 4z" />
+            </svg>
+            <span>Improve My Squad</span>
+          }
+        </button>
+      </div>
+
+      <!-- Right Column: Results -->
+      <div class="lg:col-span-2 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg shadow-lg p-6 min-h-[400px] flex flex-col">
+        <h2 class="text-2xl font-semibold border-b border-gray-200 dark:border-gray-700 pb-3 mb-4">2. AI Recommendations</h2>
+        @if (isLoading()) {
+          <div class="flex-grow flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400">
+             <svg class="animate-spin h-10 w-10 text-green-500 dark:text-green-400 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="text-lg font-medium">The AI is analyzing your squad...</p>
+            <p class="text-sm">This might take a few moments.</p>
+          </div>
+        } @else if (error()) {
+          <div class="flex-grow flex items-center justify-center">
+            <div class="bg-red-100 dark:bg-red-900/50 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg relative w-full" role="alert">
+              <strong class="font-bold">Error: </strong>
+              <span class="block sm:inline">{{ error() }}</span>
+            </div>
+          </div>
+        } @else if (recommendation(); as rec) {
+          <div class="space-y-8">
+            <div>
+              <h3 class="text-xl font-semibold text-green-600 dark:text-green-400 mb-2">Summary</h3>
+              <p class="text-gray-700 dark:text-gray-300 leading-relaxed">{{ rec.summary }}</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <h3 class="text-xl font-semibold text-green-600 dark:text-green-400 mb-3">Suggested Lineup ({{rec.suggestedLineup.formation}})</h3>
+                <ul class="space-y-2">
+                  @for (player of rec.suggestedLineup.players; track player.name) {
+                    <li class="flex items-center justify-between bg-gray-100 dark:bg-gray-700/50 p-3 rounded-md">
+                      <div class="flex items-center">
+                        <span class="text-center font-bold text-green-600 dark:text-green-400 w-8">{{ player.position }}</span>
+                        <div class="ml-3">
+                          <p class="font-semibold text-gray-800 dark:text-gray-100">{{ player.name }}</p>
+                          <p class="text-xs text-gray-500 dark:text-gray-400">{{player.nation}} | {{player.league}} | {{ player.team }}</p>
+                        </div>
+                      </div>
+                      <span class="font-bold text-lg">{{ player.rating }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+              <div>
+                <h3 class="text-xl font-semibold text-green-600 dark:text-green-400 mb-3">Upgrade Path</h3>
+                @if (rec.upgrades && rec.upgrades.length > 0) {
+                  <div class="space-y-4">
+                    @for (upgrade of rec.upgrades; track upgrade.with.name) {
+                      <div class="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg">
+                        <div class="flex justify-between items-start mb-2">
+                          <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Replace <span class="font-semibold text-red-500 dark:text-red-400">{{ upgrade.replace }}</span></p>
+                            <p class="font-semibold text-lg text-green-700 dark:text-green-300">With: {{ upgrade.with.name }}</p>
+                             <p class="text-xs text-gray-500 dark:text-gray-400">{{upgrade.with.nation}} | {{upgrade.with.league}} | {{ upgrade.with.club }}</p>
+                          </div>
+                          <div class="text-right">
+                             <p class="font-bold text-yellow-500 dark:text-yellow-400">{{ formatNumber(upgrade.approximatePrice) }}</p>
+                             <p class="text-xs text-gray-500 dark:text-gray-400">Coins</p>
+                          </div>
+                        </div>
+                        <p class="text-sm text-gray-700 dark:text-gray-300 italic">"{{ upgrade.reason }}"</p>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <p class="text-gray-500 dark:text-gray-400">No affordable upgrades found with the current budget, but this is a solid lineup!</p>
+                }
+              </div>
+            </div>
+          </div>
+        } @else {
+          <div class="flex-grow flex items-center justify-center text-center text-gray-400 dark:text-gray-500">
+            @if (!isGeminiAvailable()) {
+                <div class="bg-yellow-100 dark:bg-yellow-900/50 border border-yellow-400 dark:border-yellow-700 text-yellow-800 dark:text-yellow-300 px-4 py-3 rounded-lg relative w-full" role="alert">
+                    <strong class="font-bold">Feature Unavailable: </strong>
+                    <span class="block sm:inline">The AI analysis feature is not configured. An API key is required.</span>
+                </div>
+            } @else {
+                 <p class="text-lg">Upload your club's CSV file to get started.</p>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Club Explorer Section -->
+    @if (players().length > 0) {
+      <div class="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <h2 class="text-2xl font-semibold border-b border-gray-200 dark:border-gray-700 pb-3 mb-6">Club Explorer</h2>
+
+        <!-- Filter Controls -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 items-end">
+          <div>
+            <label for="name-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
+            <input type="text" id="name-filter" (input)="updateNameFilter($event)" placeholder="Search by name..."
+                   class="mt-1 block w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
+          </div>
+          <div>
+            <label for="position-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Position</label>
+            <input type="text" id="position-filter" (input)="updatePositionFilter($event)" placeholder="e.g., ST, CM, CB"
+                   class="mt-1 block w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rating</label>
+            <div class="flex items-center space-x-2 mt-1">
+              <input type="number" id="min-rating-filter" min="0" max="99" [value]="minRatingFilter()" (input)="updateMinRatingFilter($event)"
+                     class="block w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm" placeholder="Min">
+              <span class="text-gray-500 dark:text-gray-400">-</span>
+              <input type="number" id="max-rating-filter" min="0" max="99" [value]="maxRatingFilter()" (input)="updateMaxRatingFilter($event)"
+                     class="block w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm" placeholder="Max">
+            </div>
+          </div>
+          <button (click)="resetFilters()" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md h-fit transition-colors">
+              Reset Filters
+          </button>
+        </div>
+         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 items-end">
+             <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Price (Coins)</label>
+                <div class="flex items-center space-x-2 mt-1">
+                <input type="number" id="min-price-filter" min="0" [value]="minPriceFilter()" (input)="updateMinPriceFilter($event)"
+                        class="block w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm" placeholder="Min">
+                <span class="text-gray-500 dark:text-gray-400">-</span>
+                <input type="number" id="max-price-filter" min="0" [value]="maxPriceFilter()" (input)="updateMaxPriceFilter($event)"
+                        class="block w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm" placeholder="Max">
+                </div>
+            </div>
+         </div>
+
+
+        <!-- Filtered Results Table -->
+        <div class="mb-4">
+          <p class="text-sm text-gray-500 dark:text-gray-400">{{ filteredPlayers().length }} / {{ players().length }} Players Matching</p>
+        </div>
+        <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-700/50">
+              <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Player</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Rating</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Position</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Price</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Team</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              @for (player of filteredPlayers().slice(0, 50); track player.DefinitionId + player.Name) {
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ player.Name }}</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">{{ player.Rarity }}</div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="text-lg font-bold">{{ player.Rating }}</span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ player['Preferred Position'] }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-yellow-600 dark:text-yellow-400">
+                    {{ player.ExternalPrice === '-- NA --' ? 'N/A' : formatNumber(player.ExternalPrice) }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ player.Team }}</td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="5" class="text-center py-8 text-gray-500">
+                    No players match your filter criteria.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          @if (filteredPlayers().length > 50) {
+            <div class="text-center py-4 text-sm text-gray-500 bg-gray-50 dark:bg-gray-700/50">
+                Displaying first 50 of {{filteredPlayers().length}} results.
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>

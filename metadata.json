@@ -1,0 +1,5 @@
+{
+  "name": "FUT Squad Improver",
+  "description": "Upload your FUT club data from a CSV file, enter your coin balance, and get AI-powered recommendations for squad improvements, including lineup suggestions and player upgrades.",
+  "requestFramePermissions": []
+}
