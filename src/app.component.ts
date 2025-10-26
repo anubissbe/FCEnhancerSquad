@@ -5,6 +5,8 @@ import { Recommendation } from './models/recommendation.model';
 import { GeminiService } from './services/gemini.service';
 import { SquadDisplayComponent } from './squad-display.component';
 import { PlayerComparisonComponent } from './player-comparison.component';
+import { PlayerDataService } from './services/player-data.service';
+import { PlayerData } from './models/player-data.model';
 
 const THEME_KEY = 'fut-squad-improver-theme';
 
@@ -21,6 +23,7 @@ type SortableColumn = 'Name' | 'Rating' | 'Preferred Position' | 'ExternalPrice'
 })
 export class AppComponent {
   private geminiService = inject(GeminiService);
+  private playerDataService = inject(PlayerDataService);
 
   readonly placeholderImageUrl = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239ca3af'%3E%3Cpath fill-rule='evenodd' d='M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12.54-1.285A7.486 7.486 0 0112 15a7.486 7.486 0 015.855 2.812A8.224 8.224 0 0112 20.25a8.224 8.224 0 01-5.855-2.438zM15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z' clip-rule='evenodd' /%3E%3C/svg%3E`;
 
@@ -56,6 +59,9 @@ export class AppComponent {
 
   // Signals for comparison
   playersToCompare = signal<Player[]>([]);
+
+  // Signal for player detail modal
+  selectedPlayer = signal<Player | null>(null);
 
   // Computed signals for dropdown options
   availableRarities = computed(() => {
@@ -266,7 +272,7 @@ export class AppComponent {
     this.coinBalance.set(Number(value) || 0);
   }
 
-  parseCsv(csvData: string): void {
+  async parseCsv(csvData: string): Promise<void> {
     try {
       // 1. Sanitize input: Remove BOM if present and trim whitespace
       if (csvData.startsWith('\uFEFF')) {
@@ -381,7 +387,7 @@ export class AppComponent {
 
         // Generate the Futbin image URL or use a placeholder
         if (player.DefinitionId) {
-            player.imageUrl = `https://cdn.futbin.com/content/fc24/img/players/${player.DefinitionId}.png`;
+            player.imageUrl = `https://cdn.futbin.com/content/fc26/img/players/${player.DefinitionId}.png`;
         } else {
             player.imageUrl = this.placeholderImageUrl;
         }
@@ -389,11 +395,40 @@ export class AppComponent {
         playerArray.push(player as Player);
       }
       
-      this.players.set(playerArray);
-
-      if (playerArray.length === 0 && dataRows.some(r => r.length > 1 || r[0].trim() !== '')) {
-          this.error.set('No valid player data could be parsed. Please check the CSV file format and content.');
+      // 5. Enrich player data
+      if (playerArray.length > 0) {
+        try {
+            const fullPlayerDataMap = await this.playerDataService.getPlayerDataMap();
+            const enrichedPlayers = playerArray.map(player => {
+                const dbPlayer = fullPlayerDataMap.get(player.DefinitionId);
+                if (dbPlayer) {
+                    return {
+                        ...player,
+                        Pace: dbPlayer.Pace,
+                        Shooting: dbPlayer.Shooting,
+                        Passing: dbPlayer.Passing,
+                        Dribbling: dbPlayer.Dribbling,
+                        Defending: dbPlayer.Defending,
+                        Physicality: dbPlayer.Physicality
+                    };
+                }
+                return player;
+            });
+            this.players.set(enrichedPlayers);
+        } catch (enrichError) {
+            console.error('Failed to fetch or process player database:', enrichError);
+            // Set players without enrichment if the database fails
+            this.players.set(playerArray); 
+            // Optionally set an error to inform the user
+            this.error.set('Could not load detailed player stats. Displaying basic info from CSV.');
+        }
       } else {
+        this.players.set([]); // No players parsed
+      }
+
+      if (this.players().length === 0 && dataRows.some(r => r.length > 1 || r[0].trim() !== '')) {
+          this.error.set('No valid player data could be parsed. Please check the CSV file format and content.');
+      } else if (!this.error()) {
           this.error.set(''); // Clear previous errors on success
       }
 
@@ -565,5 +600,14 @@ export class AppComponent {
   
   clearComparison(): void {
     this.playersToCompare.set([]);
+  }
+
+  // Player Detail Modal Methods
+  viewPlayer(player: Player): void {
+    this.selectedPlayer.set(player);
+  }
+
+  closePlayerModal(): void {
+    this.selectedPlayer.set(null);
   }
 }
