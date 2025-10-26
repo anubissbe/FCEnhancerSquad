@@ -3,15 +3,21 @@ import { CommonModule } from '@angular/common';
 import { Player } from './models/player.model';
 import { Recommendation } from './models/recommendation.model';
 import { GeminiService } from './services/gemini.service';
+import { SquadDisplayComponent } from './squad-display.component';
+import { PlayerComparisonComponent } from './player-comparison.component';
 
 const THEME_KEY = 'fut-squad-improver-theme';
+
+// Type for sortable columns to ensure type safety
+type SortableColumn = 'Name' | 'Rating' | 'Preferred Position' | 'ExternalPrice' | 'Team';
+
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, SquadDisplayComponent, PlayerComparisonComponent],
 })
 export class AppComponent {
   private geminiService = inject(GeminiService);
@@ -26,6 +32,7 @@ export class AppComponent {
   
   isGeminiAvailable = signal<boolean>(true);
   hasSavedData = signal<boolean>(false);
+  placeholderAvatars = signal<string[]>([]);
 
   // Theme signal
   isDarkMode = signal<boolean>(true);
@@ -37,6 +44,15 @@ export class AppComponent {
   maxRatingFilter = signal<number>(99);
   minPriceFilter = signal<number>(0);
   maxPriceFilter = signal<number>(20000000);
+  tradeableFilter = signal<'all' | 'tradeable'>('all');
+
+  // Signals for sorting
+  sortColumn = signal<SortableColumn>('Rating');
+  sortDirection = signal<'asc' | 'desc'>('desc');
+
+  // Signals for comparison
+  playersToCompare = signal<Player[]>([]);
+
 
   filteredPlayers = computed(() => {
     const players = this.players();
@@ -46,12 +62,16 @@ export class AppComponent {
     const maxRating = this.maxRatingFilter();
     const minPrice = this.minPriceFilter();
     const maxPrice = this.maxPriceFilter();
+    const tradeable = this.tradeableFilter();
+    
+    const column = this.sortColumn();
+    const direction = this.sortDirection();
 
     if (players.length === 0) {
         return [];
     }
 
-    return players.filter(p => {
+    const filtered = players.filter(p => {
         const rating = parseInt(p.Rating, 10);
         const priceStr = p.ExternalPrice.trim();
         const price = priceStr !== '-- NA --' && !isNaN(Number(priceStr)) ? Number(priceStr) : 0;
@@ -60,9 +80,73 @@ export class AppComponent {
         const positionMatch = position === '' || p['Preferred Position'].toLowerCase().includes(position) || p['Alternate Positions'].toLowerCase().includes(position);
         const ratingMatch = rating >= minRating && rating <= maxRating;
         const priceMatch = price >= minPrice && price <= maxPrice;
+        const tradeableMatch = tradeable === 'all' || p.Untradeable !== 'Y';
 
-        return nameMatch && positionMatch && ratingMatch && priceMatch;
+        return nameMatch && positionMatch && ratingMatch && priceMatch && tradeableMatch;
     });
+
+    // Add sorting logic
+    return filtered.sort((a, b) => {
+        const valA = a[column];
+        const valB = b[column];
+
+        let comparison = 0;
+
+        switch (column) {
+            case 'Rating':
+                comparison = Number(valA) - Number(valB);
+                break;
+            case 'ExternalPrice':
+                const priceA = valA.trim() !== '-- NA --' && !isNaN(Number(valA)) ? Number(valA) : -1;
+                const priceB = valB.trim() !== '-- NA --' && !isNaN(Number(valB)) ? Number(valB) : -1;
+                comparison = priceA - priceB;
+                break;
+            case 'Name':
+            case 'Preferred Position':
+            case 'Team':
+                comparison = String(valA).localeCompare(String(valB));
+                break;
+        }
+
+        return direction === 'asc' ? comparison : -comparison;
+    });
+  });
+
+  clubStats = computed(() => {
+    const allPlayers = this.players();
+    if (allPlayers.length === 0) {
+      return { averageRating: 0, minPrice: 0, maxPrice: 0 };
+    }
+
+    let totalRating = 0;
+    let minPrice = Infinity;
+    let maxPrice = 0;
+    let playerCountForRating = 0;
+
+    for (const player of allPlayers) {
+      const rating = parseInt(player.Rating, 10);
+      if (!isNaN(rating)) {
+        totalRating += rating;
+        playerCountForRating++;
+      }
+
+      const priceStr = player.ExternalPrice.trim();
+      if (priceStr !== '-- NA --') {
+        const price = Number(priceStr);
+        if (!isNaN(price)) {
+          if (price < minPrice) minPrice = price;
+          if (price > maxPrice) maxPrice = price;
+        }
+      }
+    }
+
+    const averageRating = playerCountForRating > 0 ? totalRating / playerCountForRating : 0;
+    
+    return {
+      averageRating: averageRating,
+      minPrice: minPrice === Infinity ? 0 : minPrice,
+      maxPrice: maxPrice,
+    };
   });
 
   constructor() {
@@ -92,6 +176,30 @@ export class AppComponent {
       } else {
         document.documentElement.classList.remove('dark');
       }
+    });
+
+    this.initAvatars();
+  }
+
+  async initAvatars(): Promise<void> {
+    if (this.isGeminiAvailable()) {
+      const avatars = await this.geminiService.generateAvatars();
+      this.placeholderAvatars.set(avatars);
+      if (this.players().length > 0) {
+        this.assignAvatars();
+      }
+    }
+  }
+
+  assignAvatars(): void {
+    const avatars = this.placeholderAvatars();
+    if (avatars.length === 0) return;
+
+    this.players.update(currentPlayers => {
+        return currentPlayers.map(player => ({
+            ...player,
+            avatarUrl: avatars[Math.floor(Math.random() * avatars.length)]
+        }));
     });
   }
 
@@ -198,6 +306,7 @@ export class AppComponent {
       }
       
       this.players.set(playerArray);
+      this.assignAvatars();
 
       if (playerArray.length === 0 && lines.length > 1) {
           this.error.set('No valid player data could be parsed. Please check the CSV file format.');
@@ -277,6 +386,7 @@ export class AppComponent {
   updateMaxRatingFilter(event: Event) { this.maxRatingFilter.set(Number((event.target as HTMLInputElement).value) || 99); }
   updateMinPriceFilter(event: Event) { this.minPriceFilter.set(Number((event.target as HTMLInputElement).value) || 0); }
   updateMaxPriceFilter(event: Event) { this.maxPriceFilter.set(Number((event.target as HTMLInputElement).value) || 20000000); }
+  updateTradeableFilter(filter: 'all' | 'tradeable') { this.tradeableFilter.set(filter); }
   
   resetFilters() {
     this.nameFilter.set('');
@@ -285,6 +395,7 @@ export class AppComponent {
     this.maxRatingFilter.set(99);
     this.minPriceFilter.set(0);
     this.maxPriceFilter.set(20000000);
+    this.tradeableFilter.set('all');
     
     // Reset input fields visually
     const resetInput = (id: string, value: string) => {
@@ -298,5 +409,68 @@ export class AppComponent {
     resetInput('max-rating-filter', '99');
     resetInput('min-price-filter', '0');
     resetInput('max-price-filter', '20000000');
+  }
+
+  sortData(column: SortableColumn): void {
+    if (this.sortColumn() === column) {
+      this.sortDirection.update(dir => (dir === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.sortColumn.set(column);
+      // Default sort direction for new columns
+      if (column === 'Rating' || column === 'ExternalPrice') {
+          this.sortDirection.set('desc');
+      } else {
+          this.sortDirection.set('asc');
+      }
+    }
+  }
+
+  getSortTooltip(column: SortableColumn): string {
+    const currentSortColumn = this.sortColumn();
+    const currentSortDirection = this.sortDirection();
+    
+    const friendlyColumnName = (col: SortableColumn): string => {
+        switch (col) {
+            case 'Preferred Position': return 'Position';
+            case 'ExternalPrice': return 'Price';
+            default: return col;
+        }
+    };
+
+    const name = friendlyColumnName(column);
+
+    if (currentSortColumn === column) {
+      if (currentSortDirection === 'desc') {
+        return `Sorted by ${name} (Descending). Click to sort ascending.`;
+      } else {
+        return `Sorted by ${name} (Ascending). Click to sort descending.`;
+      }
+    } else {
+      return `Click to sort by ${name}.`;
+    }
+  }
+
+  // Comparison methods
+  isPlayerSelected(player: Player): boolean {
+    return this.playersToCompare().some(p => p.DefinitionId === player.DefinitionId && p.Name === player.Name);
+  }
+
+  togglePlayerComparison(player: Player): void {
+    const currentSelection = this.playersToCompare();
+    const isSelected = this.isPlayerSelected(player);
+
+    if (isSelected) {
+      // Remove player
+      this.playersToCompare.set(currentSelection.filter(p => !(p.DefinitionId === player.DefinitionId && p.Name === player.Name)));
+    } else {
+      // Add player if there's space
+      if (currentSelection.length < 2) {
+        this.playersToCompare.set([...currentSelection, player]);
+      }
+    }
+  }
+  
+  clearComparison(): void {
+    this.playersToCompare.set([]);
   }
 }

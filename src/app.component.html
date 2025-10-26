@@ -117,20 +117,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <h3 class="text-xl font-semibold text-green-600 dark:text-green-400 mb-3">Suggested Lineup ({{rec.suggestedLineup.formation}})</h3>
-                <ul class="space-y-2">
-                  @for (player of rec.suggestedLineup.players; track player.name) {
-                    <li class="flex items-center justify-between bg-gray-100 dark:bg-gray-700/50 p-3 rounded-md">
-                      <div class="flex items-center">
-                        <span class="text-center font-bold text-green-600 dark:text-green-400 w-8">{{ player.position }}</span>
-                        <div class="ml-3">
-                          <p class="font-semibold text-gray-800 dark:text-gray-100">{{ player.name }}</p>
-                          <p class="text-xs text-gray-500 dark:text-gray-400">{{player.nation}} | {{player.league}} | {{ player.team }}</p>
-                        </div>
-                      </div>
-                      <span class="font-bold text-lg">{{ player.rating }}</span>
-                    </li>
-                  }
-                </ul>
+                <app-squad-display [lineup]="rec.suggestedLineup"></app-squad-display>
               </div>
               <div>
                 <h3 class="text-xl font-semibold text-green-600 dark:text-green-400 mb-3">Upgrade Path</h3>
@@ -179,8 +166,26 @@
       <div class="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         <h2 class="text-2xl font-semibold border-b border-gray-200 dark:border-gray-700 pb-3 mb-6">Club Explorer</h2>
 
+        <!-- Aggregate Stats -->
+        @if (clubStats(); as stats) {
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 text-center">
+                <div class="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Average Rating</p>
+                    <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ stats.averageRating.toFixed(1) }}</p>
+                </div>
+                <div class="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Min Price</p>
+                    <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ formatNumber(stats.minPrice) }}</p>
+                </div>
+                <div class="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Max Price</p>
+                    <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ formatNumber(stats.maxPrice) }}</p>
+                </div>
+            </div>
+        }
+
         <!-- Filter Controls -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 items-end">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6 items-end">
           <div>
             <label for="name-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
             <input type="text" id="name-filter" (input)="updateNameFilter($event)" placeholder="Search by name..."
@@ -201,23 +206,45 @@
                      class="block w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm" placeholder="Max">
             </div>
           </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Price (Coins)</label>
+            <div class="flex items-center space-x-2 mt-1">
+            <input type="number" id="min-price-filter" min="0" [value]="minPriceFilter()" (input)="updateMinPriceFilter($event)"
+                    class="block w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm" placeholder="Min">
+            <span class="text-gray-500 dark:text-gray-400">-</span>
+            <input type="number" id="max-price-filter" min="0" [value]="maxPriceFilter()" (input)="updateMaxPriceFilter($event)"
+                    class="block w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm" placeholder="Max">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Show Players</label>
+            <div class="mt-1 flex rounded-md shadow-sm">
+              <button type="button" (click)="updateTradeableFilter('all')" 
+                [class.bg-green-600]="tradeableFilter() === 'all'" 
+                [class.text-white]="tradeableFilter() === 'all'"
+                [class.bg-gray-50]="tradeableFilter() !== 'all'" 
+                [class.dark:bg-gray-700]="tradeableFilter() !== 'all'"
+                [class.hover:bg-gray-100]="tradeableFilter() !== 'all'"
+                [class.dark:hover:bg-gray-600]="tradeableFilter() !== 'all'"
+                class="relative inline-flex items-center px-4 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 text-sm font-medium focus:z-10 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors">
+                All
+              </button>
+              <button type="button" (click)="updateTradeableFilter('tradeable')" 
+                [class.bg-green-600]="tradeableFilter() === 'tradeable'"
+                [class.text-white]="tradeableFilter() === 'tradeable'"
+                [class.bg-gray-50]="tradeableFilter() !== 'tradeable'"
+                [class.dark:bg-gray-700]="tradeableFilter() !== 'tradeable'"
+                [class.hover:bg-gray-100]="tradeableFilter() !== 'tradeable'"
+                [class.dark:hover:bg-gray-600]="tradeableFilter() !== 'tradeable'"
+                class="-ml-px relative inline-flex items-center px-4 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 text-sm font-medium focus:z-10 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors">
+                Tradeable Only
+              </button>
+            </div>
+          </div>
           <button (click)="resetFilters()" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md h-fit transition-colors">
               Reset Filters
           </button>
         </div>
-         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 items-end">
-             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Price (Coins)</label>
-                <div class="flex items-center space-x-2 mt-1">
-                <input type="number" id="min-price-filter" min="0" [value]="minPriceFilter()" (input)="updateMinPriceFilter($event)"
-                        class="block w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm" placeholder="Min">
-                <span class="text-gray-500 dark:text-gray-400">-</span>
-                <input type="number" id="max-price-filter" min="0" [value]="maxPriceFilter()" (input)="updateMaxPriceFilter($event)"
-                        class="block w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm" placeholder="Max">
-                </div>
-            </div>
-         </div>
-
 
         <!-- Filtered Results Table -->
         <div class="mb-4">
@@ -227,19 +254,93 @@
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700/50">
               <tr>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Player</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Rating</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Position</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Price</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Team</th>
+                <th scope="col" class="px-4 py-3"></th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none transition-colors hover:bg-gray-100 dark:hover:bg-gray-700" (click)="sortData('Name')" [title]="getSortTooltip('Name')">
+                  <div class="flex items-center">
+                    Player
+                    @if (sortColumn() === 'Name') {
+                      <span class="ml-1 text-gray-600 dark:text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform duration-200" [class.rotate-180]="sortDirection() === 'asc'" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                      </span>
+                    }
+                  </div>
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none transition-colors hover:bg-gray-100 dark:hover:bg-gray-700" (click)="sortData('Rating')" [title]="getSortTooltip('Rating')">
+                   <div class="flex items-center">
+                    Rating
+                    @if (sortColumn() === 'Rating') {
+                      <span class="ml-1 text-gray-600 dark:text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform duration-200" [class.rotate-180]="sortDirection() === 'asc'" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                      </span>
+                    }
+                  </div>
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none transition-colors hover:bg-gray-100 dark:hover:bg-gray-700" (click)="sortData('Preferred Position')" [title]="getSortTooltip('Preferred Position')">
+                  <div class="flex items-center">
+                    Position
+                    @if (sortColumn() === 'Preferred Position') {
+                      <span class="ml-1 text-gray-600 dark:text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform duration-200" [class.rotate-180]="sortDirection() === 'asc'" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                      </span>
+                    }
+                  </div>
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none transition-colors hover:bg-gray-100 dark:hover:bg-gray-700" (click)="sortData('ExternalPrice')" [title]="getSortTooltip('ExternalPrice')">
+                  <div class="flex items-center">
+                    Price
+                    @if (sortColumn() === 'ExternalPrice') {
+                      <span class="ml-1 text-gray-600 dark:text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform duration-200" [class.rotate-180]="sortDirection() === 'asc'" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                      </span>
+                    }
+                  </div>
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none transition-colors hover:bg-gray-100 dark:hover:bg-gray-700" (click)="sortData('Team')" [title]="getSortTooltip('Team')">
+                  <div class="flex items-center">
+                    Team
+                    @if (sortColumn() === 'Team') {
+                      <span class="ml-1 text-gray-600 dark:text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform duration-200" [class.rotate-180]="sortDirection() === 'asc'" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                      </span>
+                    }
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               @for (player of filteredPlayers().slice(0, 50); track player.DefinitionId + player.Name) {
                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                  <td class="px-4 py-4">
+                    <input type="checkbox"
+                        class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-green-600 focus:ring-green-500 bg-gray-100 dark:bg-gray-900"
+                        [checked]="isPlayerSelected(player)"
+                        [disabled]="playersToCompare().length >= 2 && !isPlayerSelected(player)"
+                        (change)="togglePlayerComparison(player)">
+                  </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ player.Name }}</div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400">{{ player.Rarity }}</div>
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 h-10 w-10">
+                            @if (player.avatarUrl) {
+                                <img class="h-10 w-10 rounded-full" [src]="player.avatarUrl" alt="Player avatar">
+                            } @else {
+                                <div class="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+                            }
+                        </div>
+                        <div class="ml-4">
+                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ player.Name }}</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">{{ player.Rarity }}</div>
+                        </div>
+                    </div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <span class="text-lg font-bold">{{ player.Rating }}</span>
@@ -252,7 +353,7 @@
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="5" class="text-center py-8 text-gray-500">
+                  <td colspan="6" class="text-center py-8 text-gray-500">
                     No players match your filter criteria.
                   </td>
                 </tr>
@@ -268,4 +369,6 @@
       </div>
     }
   </div>
+
+  <app-player-comparison [players]="playersToCompare()" (clear)="clearComparison()"></app-player-comparison>
 </div>

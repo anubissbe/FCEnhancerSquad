@@ -21,6 +21,31 @@ export class GeminiService {
     }
   }
 
+  async generateAvatars(): Promise<string[]> {
+    if (!this.ai) {
+        console.warn("Gemini service not available, skipping avatar generation.");
+        return [];
+    }
+
+    try {
+        const response = await this.ai.models.generateImages({
+            model: 'imagen-3.0-generate-002',
+            prompt: 'Generate 4 diverse, generic, minimalist style football player avatar icons for a fantasy football game, suitable as placeholders. Use a clean color palette. The output should be circular icons on a transparent background.',
+            config: {
+                numberOfImages: 4,
+                outputMimeType: 'image/png',
+                aspectRatio: '1:1',
+            },
+        });
+
+        return response.generatedImages.map(img => `data:image/png;base64,${img.image.imageBytes}`);
+    } catch (e) {
+        console.error("Error generating placeholder avatars:", e);
+        // Return empty array on failure
+        return [];
+    }
+  }
+
   async getSquadImprovements(
     players: Player[],
     coins: number

@@ -16,4 +16,5 @@ export interface Player {
   IsInActive11: string;
   'Alternate Positions': string;
   ExternalPrice: string;
+  avatarUrl?: string;
 }
