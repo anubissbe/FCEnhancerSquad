@@ -22,6 +22,8 @@ type SortableColumn = 'Name' | 'Rating' | 'Preferred Position' | 'ExternalPrice'
 export class AppComponent {
   private geminiService = inject(GeminiService);
 
+  readonly placeholderImageUrl = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239ca3af'%3E%3Cpath fill-rule='evenodd' d='M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12.54-1.285A7.486 7.486 0 0112 15a7.486 7.486 0 015.855 2.812A8.224 8.224 0 0112 20.25a8.224 8.224 0 01-5.855-2.438zM15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z' clip-rule='evenodd' /%3E%3C/svg%3E`;
+
   players = signal<Player[]>([]);
   csvContent = signal<string>(''); // Store raw CSV content
   coinBalance = signal<number>(50000);
@@ -32,7 +34,6 @@ export class AppComponent {
   
   isGeminiAvailable = signal<boolean>(true);
   hasSavedData = signal<boolean>(false);
-  placeholderAvatars = signal<string[]>([]);
 
   // Theme signal
   isDarkMode = signal<boolean>(true);
@@ -40,11 +41,14 @@ export class AppComponent {
   // Signals for filtering
   nameFilter = signal<string>('');
   positionFilter = signal<string>('');
+  teamLeagueFilter = signal<string>('');
+  rarityFilter = signal<string>('');
+  nationFilter = signal<string>('');
   minRatingFilter = signal<number>(0);
   maxRatingFilter = signal<number>(99);
   minPriceFilter = signal<number>(0);
   maxPriceFilter = signal<number>(20000000);
-  tradeableFilter = signal<'all' | 'tradeable'>('all');
+  tradeableFilter = signal<'all' | 'tradeable' | 'untradeable'>('all');
 
   // Signals for sorting
   sortColumn = signal<SortableColumn>('Rating');
@@ -53,39 +57,95 @@ export class AppComponent {
   // Signals for comparison
   playersToCompare = signal<Player[]>([]);
 
+  // Computed signals for dropdown options
+  availableRarities = computed(() => {
+    const rarities = this.players().map(p => p.Rarity);
+    return [...new Set(rarities)].sort();
+  });
+
+  availableNations = computed(() => {
+    const nations = this.players().map(p => p.Nation);
+    return [...new Set(nations)].sort();
+  });
 
   filteredPlayers = computed(() => {
     const players = this.players();
-    const name = this.nameFilter().toLowerCase();
-    const position = this.positionFilter().toLowerCase();
-    const minRating = this.minRatingFilter();
-    const maxRating = this.maxRatingFilter();
-    const minPrice = this.minPriceFilter();
-    const maxPrice = this.maxPriceFilter();
-    const tradeable = this.tradeableFilter();
-    
-    const column = this.sortColumn();
-    const direction = this.sortDirection();
-
     if (players.length === 0) {
         return [];
     }
 
-    const filtered = players.filter(p => {
-        const rating = parseInt(p.Rating, 10);
-        const priceStr = p.ExternalPrice.trim();
-        const price = priceStr !== '-- NA --' && !isNaN(Number(priceStr)) ? Number(priceStr) : 0;
-        
-        const nameMatch = p.Name.toLowerCase().includes(name);
-        const positionMatch = position === '' || p['Preferred Position'].toLowerCase().includes(position) || p['Alternate Positions'].toLowerCase().includes(position);
-        const ratingMatch = rating >= minRating && rating <= maxRating;
-        const priceMatch = price >= minPrice && price <= maxPrice;
-        const tradeableMatch = tradeable === 'all' || p.Untradeable !== 'Y';
+    let filtered = players;
 
-        return nameMatch && positionMatch && ratingMatch && priceMatch && tradeableMatch;
-    });
+    // --- Chained filters for efficiency and readability ---
 
-    // Add sorting logic
+    // Name filter
+    const name = this.nameFilter().toLowerCase();
+    if (name) {
+      filtered = filtered.filter(p => p.Name.toLowerCase().includes(name));
+    }
+
+    // Position filter
+    const position = this.positionFilter().toLowerCase();
+    if (position) {
+      filtered = filtered.filter(p => 
+        p['Preferred Position'].toLowerCase().includes(position) || 
+        p['Alternate Positions'].toLowerCase().includes(position)
+      );
+    }
+    
+    // Team/League filter
+    const teamOrLeague = this.teamLeagueFilter().toLowerCase();
+    if (teamOrLeague) {
+        filtered = filtered.filter(p => 
+            p.Team.toLowerCase().includes(teamOrLeague) || 
+            p.League.toLowerCase().includes(teamOrLeague)
+        );
+    }
+
+    // Rarity filter
+    const rarity = this.rarityFilter();
+    if (rarity) {
+        filtered = filtered.filter(p => p.Rarity === rarity);
+    }
+
+    // Nation filter
+    const nation = this.nationFilter();
+    if (nation) {
+        filtered = filtered.filter(p => p.Nation === nation);
+    }
+
+    // Rating filter
+    const minRating = this.minRatingFilter();
+    const maxRating = this.maxRatingFilter();
+    if (minRating > 0 || maxRating < 99) {
+        filtered = filtered.filter(p => {
+            const rating = parseInt(p.Rating, 10);
+            return rating >= minRating && rating <= maxRating;
+        });
+    }
+    
+    // Price filter
+    const minPrice = this.minPriceFilter();
+    const maxPrice = this.maxPriceFilter();
+    if (minPrice > 0 || maxPrice < 20000000) {
+        filtered = filtered.filter(p => {
+            const priceStr = p.ExternalPrice.trim();
+            const price = priceStr !== '-- NA --' && !isNaN(Number(priceStr)) ? Number(priceStr) : 0;
+            return price >= minPrice && price <= maxPrice;
+        });
+    }
+
+    // Tradeable status filter
+    const tradeable = this.tradeableFilter();
+    if (tradeable !== 'all') {
+        const isUntradeable = tradeable === 'untradeable';
+        filtered = filtered.filter(p => (p.Untradeable === 'true') === isUntradeable);
+    }
+    
+    // --- Sorting ---
+    const column = this.sortColumn();
+    const direction = this.sortDirection();
+
     return filtered.sort((a, b) => {
         const valA = a[column];
         const valB = b[column];
@@ -177,30 +237,6 @@ export class AppComponent {
         document.documentElement.classList.remove('dark');
       }
     });
-
-    this.initAvatars();
-  }
-
-  async initAvatars(): Promise<void> {
-    if (this.isGeminiAvailable()) {
-      const avatars = await this.geminiService.generateAvatars();
-      this.placeholderAvatars.set(avatars);
-      if (this.players().length > 0) {
-        this.assignAvatars();
-      }
-    }
-  }
-
-  assignAvatars(): void {
-    const avatars = this.placeholderAvatars();
-    if (avatars.length === 0) return;
-
-    this.players.update(currentPlayers => {
-        return currentPlayers.map(player => ({
-            ...player,
-            avatarUrl: avatars[Math.floor(Math.random() * avatars.length)]
-        }));
-    });
   }
 
   toggleDarkMode(): void {
@@ -232,89 +268,139 @@ export class AppComponent {
 
   parseCsv(csvData: string): void {
     try {
+      // 1. Sanitize input: Remove BOM if present and trim whitespace
       if (csvData.startsWith('\uFEFF')) {
         csvData = csvData.substring(1);
       }
-      
-      const lines = csvData.trim().split(/\r\n|\n/);
-      if (lines.length < 2) {
-        this.error.set('CSV file is empty or has no data rows.');
-        return;
-      }
+      csvData = csvData.trim();
 
-      const parseLine = (line: string): string[] => {
-        const fields: string[] = [];
-        let currentField = '';
-        let inQuotes = false;
-        
-        for (let i = 0; i < line.length; i++) {
-          const char = line[i];
-          const nextChar = line[i + 1];
+      // 2. Robust state-machine parser: handles quoted fields, newlines in fields, and escaped quotes
+      const rows: string[][] = [];
+      let currentRow: string[] = [];
+      let currentField = '';
+      let inQuotes = false;
 
+      for (let i = 0; i < csvData.length; i++) {
+        const char = csvData[i];
+        const nextChar = csvData[i + 1];
+
+        if (inQuotes) {
+          if (char === '"' && nextChar === '"') { // Escaped quote ("")
+            currentField += '"';
+            i++; // Skip the next quote
+          } else if (char === '"') { // End of quoted field
+            inQuotes = false;
+          } else {
+            currentField += char; // Character inside quoted field
+          }
+        } else { // Not in a quoted field
           if (char === '"') {
-            if (inQuotes && nextChar === '"') {
-              currentField += '"';
-              i++; 
-            } else {
-              inQuotes = !inQuotes;
-            }
-          } else if (char === ',' && !inQuotes) {
-            fields.push(currentField.trim());
+            inQuotes = true;
+          } else if (char === ',') {
+            currentRow.push(currentField);
+            currentField = '';
+          } else if (char === '\r' && nextChar === '\n') { // CRLF line ending
+            currentRow.push(currentField);
+            rows.push(currentRow);
+            currentRow = [];
+            currentField = '';
+            i++; // Skip the \n
+          } else if (char === '\n') { // LF line ending
+            currentRow.push(currentField);
+            rows.push(currentRow);
+            currentRow = [];
             currentField = '';
           } else {
             currentField += char;
           }
         }
-        fields.push(currentField.trim());
-        return fields;
-      };
+      }
+      // Add the last field and row after the loop
+      currentRow.push(currentField);
+      rows.push(currentRow);
 
-      const headers = parseLine(lines[0]);
+      // 3. Validate structure: Check for headers and sufficient data rows
+      if (rows.length < 2 || (rows.length === 1 && rows[0].every(field => field === ''))) {
+        this.error.set('CSV file is empty or has no data rows.');
+        this.players.set([]);
+        return;
+      }
       
-      const requiredHeaders = ['Name', 'Rating', 'Preferred Position', 'ExternalPrice'];
-      const hasHeaders = requiredHeaders.every(h => headers.includes(h));
+      const headers = rows[0].map(h => h.trim());
+      const dataRows = rows.slice(1);
+      
+      const requiredHeaders = ['Name', 'Rating', 'Preferred Position', 'ExternalPrice', 'DefinitionId'];
+      const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
 
-      if (!hasHeaders) {
-          this.error.set(`Invalid CSV format. Missing one of the required columns: ${requiredHeaders.join(', ')}`);
+      if (missingHeaders.length > 0) {
+          this.error.set(`Invalid CSV format. Missing required columns: ${missingHeaders.join(', ')}`);
+          this.players.set([]);
           return;
       }
 
+      // 4. Process data rows with per-row validation
       const playerArray: Player[] = [];
-
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (line === '') continue;
-        
-        const values = parseLine(line);
-        
-        if (values.length === headers.length) {
-          const player = {} as any;
-          for (let j = 0; j < headers.length; j++) {
-            player[headers[j]] = values[j];
-          }
-
-          const rating = parseInt(player.Rating, 10);
-          if (isNaN(rating) || rating < 0 || rating > 99) {
-            console.warn(`Skipping player "${player.Name}" due to invalid rating: "${player.Rating}". Row ${i + 1}.`);
-            continue;
-          }
-          
-          playerArray.push(player as Player);
-        } else {
-          console.warn(`Skipping malformed CSV row ${i + 1}: Expected ${headers.length} fields, but found ${values.length}.`);
+      const headerMap = headers.reduce((acc, header, index) => {
+        if (header) { // Ensure header is not empty
+          acc[header] = index;
         }
+        return acc;
+      }, {} as {[key: string]: number});
+
+      for (let i = 0; i < dataRows.length; i++) {
+        const values = dataRows[i];
+        const rowNumber = i + 2; // CSV is 1-indexed, plus header row
+
+        // Skip empty lines that might exist at the end of the file
+        if (values.length === 1 && values[0].trim() === '') {
+            continue;
+        }
+
+        if (values.length !== headers.length) {
+            console.warn(`Skipping malformed CSV row ${rowNumber}: Expected ${headers.length} fields, but found ${values.length}. Content: "${values.join(',')}"`);
+            continue;
+        }
+        
+        const player = {} as any;
+        for (const header of headers) {
+            if (header && headerMap[header] !== undefined) {
+                player[header] = values[headerMap[header]].trim();
+            }
+        }
+
+        if (!player.Name || !player.Rating) {
+            console.warn(`Skipping player on row ${rowNumber} due to missing Name or Rating.`);
+            continue;
+        }
+
+        const rating = parseInt(player.Rating, 10);
+        if (isNaN(rating) || rating < 0 || rating > 99) {
+            console.warn(`Skipping player "${player.Name}" on row ${rowNumber} due to invalid rating: "${player.Rating}".`);
+            continue;
+        }
+
+        // Generate the Futbin image URL or use a placeholder
+        if (player.DefinitionId) {
+            player.imageUrl = `https://cdn.futbin.com/content/fc24/img/players/${player.DefinitionId}.png`;
+        } else {
+            player.imageUrl = this.placeholderImageUrl;
+        }
+        
+        playerArray.push(player as Player);
       }
       
       this.players.set(playerArray);
-      this.assignAvatars();
 
-      if (playerArray.length === 0 && lines.length > 1) {
-          this.error.set('No valid player data could be parsed. Please check the CSV file format.');
+      if (playerArray.length === 0 && dataRows.some(r => r.length > 1 || r[0].trim() !== '')) {
+          this.error.set('No valid player data could be parsed. Please check the CSV file format and content.');
+      } else {
+          this.error.set(''); // Clear previous errors on success
       }
 
     } catch (e) {
       this.error.set('An unexpected error occurred while parsing the CSV file.');
       console.error(e);
+      this.players.set([]);
     }
   }
 
@@ -382,15 +468,21 @@ export class AppComponent {
   // Filter update methods
   updateNameFilter(event: Event) { this.nameFilter.set((event.target as HTMLInputElement).value); }
   updatePositionFilter(event: Event) { this.positionFilter.set((event.target as HTMLInputElement).value); }
+  updateTeamLeagueFilter(event: Event) { this.teamLeagueFilter.set((event.target as HTMLInputElement).value); }
+  updateRarityFilter(event: Event) { this.rarityFilter.set((event.target as HTMLInputElement).value); }
+  updateNationFilter(event: Event) { this.nationFilter.set((event.target as HTMLInputElement).value); }
   updateMinRatingFilter(event: Event) { this.minRatingFilter.set(Number((event.target as HTMLInputElement).value) || 0); }
   updateMaxRatingFilter(event: Event) { this.maxRatingFilter.set(Number((event.target as HTMLInputElement).value) || 99); }
   updateMinPriceFilter(event: Event) { this.minPriceFilter.set(Number((event.target as HTMLInputElement).value) || 0); }
   updateMaxPriceFilter(event: Event) { this.maxPriceFilter.set(Number((event.target as HTMLInputElement).value) || 20000000); }
-  updateTradeableFilter(filter: 'all' | 'tradeable') { this.tradeableFilter.set(filter); }
+  updateTradeableFilter(filter: 'all' | 'tradeable' | 'untradeable') { this.tradeableFilter.set(filter); }
   
   resetFilters() {
     this.nameFilter.set('');
     this.positionFilter.set('');
+    this.teamLeagueFilter.set('');
+    this.rarityFilter.set('');
+    this.nationFilter.set('');
     this.minRatingFilter.set(0);
     this.maxRatingFilter.set(99);
     this.minPriceFilter.set(0);
@@ -405,6 +497,7 @@ export class AppComponent {
 
     resetInput('name-filter', '');
     resetInput('position-filter', '');
+    resetInput('team-league-filter', '');
     resetInput('min-rating-filter', '0');
     resetInput('max-rating-filter', '99');
     resetInput('min-price-filter', '0');

@@ -33,11 +33,8 @@ interface ComparisonStat {
                 <div>
                     @if (players()[0]; as player1) {
                         <div class="flex items-center space-x-4">
-                            @if (player1.avatarUrl) {
-                              <img [src]="player1.avatarUrl" alt="Avatar" class="h-16 w-16 rounded-full bg-gray-200 dark:bg-gray-700">
-                            } @else {
-                              <div class="h-16 w-16 rounded-full bg-gray-200 dark:bg-gray-700"></div>
-                            }
+                            <img [src]="player1.imageUrl" alt="Player Image" class="h-16 w-16 rounded-full bg-gray-200 dark:bg-gray-700 object-cover"
+                                (error)="$any($event.target).src = placeholderImageUrl">
                             <div>
                                 <p class="font-bold text-lg">{{ player1.Name }}</p>
                                 <p class="text-sm text-gray-500 dark:text-gray-400">{{ player1.Team }}</p>
@@ -54,11 +51,8 @@ interface ComparisonStat {
                 <div>
                     @if (players()[1]; as player2) {
                         <div class="flex items-center space-x-4">
-                             @if (player2.avatarUrl) {
-                                <img [src]="player2.avatarUrl" alt="Avatar" class="h-16 w-16 rounded-full bg-gray-200 dark:bg-gray-700">
-                            } @else {
-                                <div class="h-16 w-16 rounded-full bg-gray-200 dark:bg-gray-700"></div>
-                            }
+                            <img [src]="player2.imageUrl" alt="Player Image" class="h-16 w-16 rounded-full bg-gray-200 dark:bg-gray-700 object-cover"
+                                (error)="$any($event.target).src = placeholderImageUrl">
                             <div>
                                 <p class="font-bold text-lg">{{ player2.Name }}</p>
                                 <p class="text-sm text-gray-500 dark:text-gray-400">{{ player2.Team }}</p>
@@ -72,10 +66,11 @@ interface ComparisonStat {
                 </div>
             </div>
 
-            @if (comparisonStats().length > 0) {
+            @if (comparisonData().basicStats.length > 0 || comparisonData().detailedStats.length > 0) {
                 <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
+                    <!-- Basic Stats -->
                     <dl class="space-y-2">
-                        @for(stat of comparisonStats(); track stat.label) {
+                        @for(stat of comparisonData().basicStats; track stat.label) {
                             <div class="grid grid-cols-3 items-center text-sm">
                                 <div class="text-left font-semibold" [class]="stat.class1">{{ stat.value1 }}</div>
                                 <div class="text-center font-medium text-gray-500 dark:text-gray-400">{{ stat.label }}</div>
@@ -83,6 +78,22 @@ interface ComparisonStat {
                             </div>
                         }
                     </dl>
+                    
+                    <!-- Detailed Stats -->
+                    @if (comparisonData().detailedStats.length > 0) {
+                        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                             <h4 class="text-center text-sm font-semibold mb-2 text-gray-600 dark:text-gray-300">In-Game Stats</h4>
+                            <dl class="space-y-2">
+                                @for(stat of comparisonData().detailedStats; track stat.label) {
+                                    <div class="grid grid-cols-3 items-center text-sm">
+                                        <div class="text-left font-semibold" [class]="stat.class1">{{ stat.value1 }}</div>
+                                        <div class="text-center font-medium text-gray-500 dark:text-gray-400">{{ stat.label }}</div>
+                                        <div class="text-right font-semibold" [class]="stat.class2">{{ stat.value2 }}</div>
+                                    </div>
+                                }
+                            </dl>
+                        </div>
+                    }
                 </div>
             }
         </div>
@@ -94,36 +105,55 @@ export class PlayerComparisonComponent {
   players = input.required<Player[]>();
   clear = output<void>();
 
+  readonly placeholderImageUrl = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239ca3af'%3E%3Cpath fill-rule='evenodd' d='M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12.54-1.285A7.486 7.486 0 0112 15a7.486 7.486 0 015.855 2.812A8.224 8.224 0 0112 20.25a8.224 8.224 0 01-5.855-2.438zM15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z' clip-rule='evenodd' /%3E%3C/svg%3E`;
+
   private readonly WIN_CLASS = 'text-green-500 dark:text-green-400';
   private readonly LOSE_CLASS = 'text-red-500 dark:text-red-400';
   private readonly TIE_CLASS = 'text-gray-900 dark:text-gray-100';
 
-  comparisonStats = computed<ComparisonStat[]>(() => {
+  comparisonData = computed(() => {
     const players = this.players();
     if (players.length !== 2) {
-      return [];
+      return { basicStats: [], detailedStats: [] };
     }
     const [p1, p2] = players;
 
-    const stats: ComparisonStat[] = [];
+    const basicStats: ComparisonStat[] = [];
+    const detailedStats: ComparisonStat[] = [];
     
-    // Rating comparison
+    // Basic stats
     const rating1 = parseInt(p1.Rating, 10);
     const rating2 = parseInt(p2.Rating, 10);
-    stats.push(this.createStat('Rating', rating1, rating2, 'higher'));
+    basicStats.push(this.createStat('Rating', rating1, rating2, 'higher'));
 
-    // Price comparison
     const price1 = this.parsePrice(p1.ExternalPrice);
     const price2 = this.parsePrice(p2.ExternalPrice);
-    stats.push(this.createStat('Price', price1, price2, 'lower'));
+    basicStats.push(this.createStat('Price', price1, price2, 'lower'));
 
-    // Other stats
-    stats.push(this.createStat('Position', p1['Preferred Position'], p2['Preferred Position'], 'none'));
-    stats.push(this.createStat('League', p1.League, p2.League, 'none'));
-    stats.push(this.createStat('Nation', p1.Nation, p2.Nation, 'none'));
+    basicStats.push(this.createStat('Position', p1['Preferred Position'], p2['Preferred Position'], 'none'));
+    basicStats.push(this.createStat('League', p1.League, p2.League, 'none'));
+    basicStats.push(this.createStat('Nation', p1.Nation, p2.Nation, 'none'));
 
-    return stats;
+    // Detailed stats, only if available on both players
+    if (p1.Pace && p2.Pace) {
+      detailedStats.push(this.createStat('Pace', this.parseStat(p1.Pace), this.parseStat(p2.Pace), 'higher'));
+      detailedStats.push(this.createStat('Shooting', this.parseStat(p1.Shooting), this.parseStat(p2.Shooting), 'higher'));
+      detailedStats.push(this.createStat('Passing', this.parseStat(p1.Passing), this.parseStat(p2.Passing), 'higher'));
+      detailedStats.push(this.createStat('Dribbling', this.parseStat(p1.Dribbling), this.parseStat(p2.Dribbling), 'higher'));
+      detailedStats.push(this.createStat('Defending', this.parseStat(p1.Defending), this.parseStat(p2.Defending), 'higher'));
+      detailedStats.push(this.createStat('Physicality', this.parseStat(p1.Physicality), this.parseStat(p2.Physicality), 'higher'));
+    }
+
+    return { basicStats, detailedStats };
   });
+
+  private parseStat(statStr: string | undefined): number {
+    if (!statStr) {
+        return 0;
+    }
+    const stat = parseInt(statStr, 10);
+    return isNaN(stat) ? 0 : stat;
+  }
 
   private parsePrice(priceStr: string): number {
     const cleanPrice = priceStr.trim();
@@ -145,7 +175,7 @@ export class PlayerComparisonComponent {
     let class1 = this.TIE_CLASS;
     let class2 = this.TIE_CLASS;
 
-    if (better !== 'none' && typeof val1 === 'number' && typeof val2 === 'number') {
+    if (better !== 'none' && typeof val1 === 'number' && typeof val2 === 'number' && !isNaN(val1) && !isNaN(val2)) {
         const valid1 = val1 !== -1;
         const valid2 = val2 !== -1;
         

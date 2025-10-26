@@ -185,7 +185,7 @@
         }
 
         <!-- Filter Controls -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6 items-end">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-6 items-end">
           <div>
             <label for="name-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
             <input type="text" id="name-filter" (input)="updateNameFilter($event)" placeholder="Search by name..."
@@ -195,6 +195,31 @@
             <label for="position-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Position</label>
             <input type="text" id="position-filter" (input)="updatePositionFilter($event)" placeholder="e.g., ST, CM, CB"
                    class="mt-1 block w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
+          </div>
+          <div>
+            <label for="team-league-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Team / League</label>
+            <input type="text" id="team-league-filter" (input)="updateTeamLeagueFilter($event)" placeholder="e.g., FC Barcelona"
+                   class="mt-1 block w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
+          </div>
+          <div>
+            <label for="rarity-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rarity</label>
+            <select id="rarity-filter" (change)="updateRarityFilter($event)" [value]="rarityFilter()"
+                   class="mt-1 block w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
+              <option value="">All Rarities</option>
+              @for(rarity of availableRarities(); track rarity) {
+                <option [value]="rarity">{{ rarity }}</option>
+              }
+            </select>
+          </div>
+           <div>
+            <label for="nation-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nation</label>
+            <select id="nation-filter" (change)="updateNationFilter($event)" [value]="nationFilter()"
+                   class="mt-1 block w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
+              <option value="">All Nations</option>
+              @for(nation of availableNations(); track nation) {
+                <option [value]="nation">{{ nation }}</option>
+              }
+            </select>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rating</label>
@@ -217,33 +242,36 @@
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Show Players</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
             <div class="mt-1 flex rounded-md shadow-sm">
               <button type="button" (click)="updateTradeableFilter('all')" 
-                [class.bg-green-600]="tradeableFilter() === 'all'" 
-                [class.text-white]="tradeableFilter() === 'all'"
-                [class.bg-gray-50]="tradeableFilter() !== 'all'" 
-                [class.dark:bg-gray-700]="tradeableFilter() !== 'all'"
-                [class.hover:bg-gray-100]="tradeableFilter() !== 'all'"
-                [class.dark:hover:bg-gray-600]="tradeableFilter() !== 'all'"
+                [class.bg-green-600]="tradeableFilter() === 'all'" [class.text-white]="tradeableFilter() === 'all'"
+                [class.bg-gray-50]="tradeableFilter() !== 'all'" [class.dark:bg-gray-700]="tradeableFilter() !== 'all'"
+                [class.hover:bg-gray-100]="tradeableFilter() !== 'all'" [class.dark:hover:bg-gray-600]="tradeableFilter() !== 'all'"
                 class="relative inline-flex items-center px-4 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 text-sm font-medium focus:z-10 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors">
                 All
               </button>
               <button type="button" (click)="updateTradeableFilter('tradeable')" 
-                [class.bg-green-600]="tradeableFilter() === 'tradeable'"
-                [class.text-white]="tradeableFilter() === 'tradeable'"
-                [class.bg-gray-50]="tradeableFilter() !== 'tradeable'"
-                [class.dark:bg-gray-700]="tradeableFilter() !== 'tradeable'"
-                [class.hover:bg-gray-100]="tradeableFilter() !== 'tradeable'"
-                [class.dark:hover:bg-gray-600]="tradeableFilter() !== 'tradeable'"
+                [class.bg-green-600]="tradeableFilter() === 'tradeable'" [class.text-white]="tradeableFilter() === 'tradeable'"
+                [class.bg-gray-50]="tradeableFilter() !== 'tradeable'" [class.dark:bg-gray-700]="tradeableFilter() !== 'tradeable'"
+                [class.hover:bg-gray-100]="tradeableFilter() !== 'tradeable'" [class.dark:hover:bg-gray-600]="tradeableFilter() !== 'tradeable'"
+                class="-ml-px relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium focus:z-10 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors">
+                Tradeable
+              </button>
+              <button type="button" (click)="updateTradeableFilter('untradeable')" 
+                [class.bg-green-600]="tradeableFilter() === 'untradeable'" [class.text-white]="tradeableFilter() === 'untradeable'"
+                [class.bg-gray-50]="tradeableFilter() !== 'untradeable'" [class.dark:bg-gray-700]="tradeableFilter() !== 'untradeable'"
+                [class.hover:bg-gray-100]="tradeableFilter() !== 'untradeable'" [class.dark:hover:bg-gray-600]="tradeableFilter() !== 'untradeable'"
                 class="-ml-px relative inline-flex items-center px-4 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 text-sm font-medium focus:z-10 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors">
-                Tradeable Only
+                Untradeable
               </button>
             </div>
           </div>
-          <button (click)="resetFilters()" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md h-fit transition-colors">
-              Reset Filters
-          </button>
+          <div class="lg:col-span-2 flex items-end">
+            <button (click)="resetFilters()" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md h-fit transition-colors">
+                Reset Filters
+            </button>
+          </div>
         </div>
 
         <!-- Filtered Results Table -->
@@ -330,11 +358,8 @@
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="flex items-center">
                         <div class="flex-shrink-0 h-10 w-10">
-                            @if (player.avatarUrl) {
-                                <img class="h-10 w-10 rounded-full" [src]="player.avatarUrl" alt="Player avatar">
-                            } @else {
-                                <div class="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
-                            }
+                            <img class="h-10 w-10 rounded-full object-cover bg-gray-200 dark:bg-gray-700" [src]="player.imageUrl" [alt]="player.Name"
+                                (error)="$any($event.target).src = placeholderImageUrl">
                         </div>
                         <div class="ml-4">
                             <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ player.Name }}</div>
