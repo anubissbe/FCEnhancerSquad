@@ -16,6 +16,7 @@ export interface LineupPlayer {
   team: string;
   league: string;
   nation: string;
+  imageUrl?: string;
 }
 
 export interface Upgrade {

@@ -13,28 +13,28 @@ const POSITION_COORDINATES: { [key: string]: { top: number; left: number } } = {
   GK: { top: 90, left: 50 },
   // Defenders
   RB: { top: 75, left: 88 },
-  RCB: { top: 78, left: 65 },
+  RCB: { top: 78, left: 72 },
   CB: { top: 78, left: 50 },
-  LCB: { top: 78, left: 35 },
+  LCB: { top: 78, left: 28 },
   LB: { top: 75, left: 12 },
   RWB: { top: 60, left: 90 },
   LWB: { top: 60, left: 10 },
   // Midfielders
-  RDM: { top: 62, left: 65 },
-  LDM: { top: 62, left: 35 },
+  RDM: { top: 62, left: 70 },
+  LDM: { top: 62, left: 30 },
   CDM: { top: 62, left: 50 },
-  RCM: { top: 55, left: 70 },
+  RCM: { top: 55, left: 75 },
   CM: { top: 55, left: 50 },
-  LCM: { top: 55, left: 30 },
+  LCM: { top: 55, left: 25 },
   RM: { top: 50, left: 85 },
-  RAM: { top: 40, left: 65 },
-  LAM: { top: 40, left: 35 },
+  RAM: { top: 40, left: 70 },
+  LAM: { top: 40, left: 30 },
   CAM: { top: 40, left: 50 },
   LM: { top: 50, left: 15 },
   // Forwards
-  RF: { top: 25, left: 65 },
+  RF: { top: 25, left: 70 },
   ST: { top: 20, left: 50 },
-  LF: { top: 25, left: 35 },
+  LF: { top: 25, left: 30 },
   RW: { top: 25, left: 85 },
   CF: { top: 22, left: 50 },
   LW: { top: 25, left: 15 },
@@ -73,13 +73,19 @@ const POSITION_COORDINATES: { [key: string]: { top: number; left: number } } = {
         <!-- Players -->
         @for (player of positionedPlayers(); track player.name) {
           <div class="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center group transition-transform duration-200 hover:scale-110 hover:z-10" [style.top]="player.top" [style.left]="player.left">
-            <div class="bg-gray-900/70 backdrop-blur-sm text-white rounded-lg px-2 py-1 shadow-lg text-center w-28 border border-white/20">
-                <div class="flex items-center justify-center space-x-2">
-                    <span class="font-bold text-lg text-yellow-400">{{ player.rating }}</span>
-                    <span class="text-sm font-semibold text-gray-300">{{ player.position }}</span>
+            <!-- Player Avatar -->
+            <div class="w-10 h-10 mb-1">
+              <img [src]="player.imageUrl" [alt]="player.name"
+                   class="w-full h-full rounded-full object-cover bg-gray-800 border-2 border-yellow-400"
+                   (error)="$any($event.target).src = placeholderImageUrl">
+            </div>
+
+            <div class="bg-gray-900/70 backdrop-blur-sm text-white rounded-md px-1 py-0.5 shadow-lg text-center w-16 border border-white/20">
+                <div class="flex items-baseline justify-center space-x-1">
+                    <span class="font-bold text-sm text-yellow-400">{{ player.rating }}</span>
+                    <span class="text-[10px] font-semibold text-gray-300">{{ player.position }}</span>
                 </div>
-                <p class="text-xs font-medium truncate text-gray-100">{{ player.name }}</p>
-                <p class="text-[10px] text-gray-400 truncate">{{ player.team }}</p>
+                <p class="text-[10px] font-medium truncate text-gray-100">{{ player.name }}</p>
             </div>
           </div>
         }
@@ -90,6 +96,8 @@ const POSITION_COORDINATES: { [key: string]: { top: number; left: number } } = {
 })
 export class SquadDisplayComponent {
   lineup = input.required<SuggestedLineup>();
+
+  readonly placeholderImageUrl = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e5e7eb'%3E%3Cpath fill-rule='evenodd' d='M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12.54-1.285A7.486 7.486 0 0112 15a7.486 7.486 0 015.855 2.812A8.224 8.224 0 0112 20.25a8.224 8.224 0 01-5.855-2.438zM15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z' clip-rule='evenodd' /%3E%3C/svg%3E`;
 
   positionedPlayers = computed<PositionedPlayer[]>(() => {
     const players = this.lineup().players;
@@ -115,9 +123,12 @@ export class SquadDisplayComponent {
         const key = `${p.top}-${p.left}`;
         const total = positionCounts.get(key) || 1;
         if (total > 1) {
+            // FIX: The original code used a non-existent 'index' variable.
+            // This logic gets the current index for players sharing the same position,
+            // calculates an offset to spread them out, and then increments the index for the next player.
             const index = assignedIndexes.get(key) || 0;
             // Spread players out from the center of the original position
-            const offset = (index - (total - 1) / 2) * 10;
+            const offset = (index - (total - 1) / 2) * 17;
             const newLeft = parseFloat(p.left) + offset;
             assignedIndexes.set(key, index + 1);
             return { ...p, left: `${newLeft}%` };

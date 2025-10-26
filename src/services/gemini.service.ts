@@ -23,7 +23,8 @@ export class GeminiService {
 
   async getSquadImprovements(
     players: Player[],
-    coins: number
+    coins: number,
+    formation?: string
   ): Promise<Recommendation> {
     if (!this.ai) {
         throw new Error("Gemini API key not configured. Cannot get recommendations.");
@@ -98,6 +99,10 @@ export class GeminiService {
 
     const systemInstruction = `You are a world-class expert EA FC Ultimate Team analyst and squad builder. Your knowledge is based on real-world player performance, in-game stats, chemistry, and market prices from sources like FUTBIN. Your goal is to give concrete, actionable advice to improve a user's squad based on their current players and coin budget. You must provide full chemistry information (nation, league, club) for every single player you recommend. You must adhere strictly to the provided JSON schema for your response.`;
     
+    const formationInstruction = formation
+      ? `The user has specified a preferred formation: ${formation}. Prioritize this formation. If it is a very poor fit for the players, you may suggest a better one, but you must explain why in the summary.`
+      : `Analyze the user's players and determine the absolute best, most "meta" formation for them (e.g., 4-3-2-1, 4-4-2, 3-5-2). Then, build the best possible 11-player starting lineup in that formation.`;
+
     const prompt = `
       Here is the user's current club as a JSON list of players:
       ${JSON.stringify(relevantPlayers.slice(0, 200))} 
@@ -105,7 +110,7 @@ export class GeminiService {
       The user's coin budget is: ${coins} coins.
 
       Analyze the provided club and budget. Your task is to:
-      1.  Suggest the best possible 11-player starting lineup from the existing club in a popular, effective formation (like 4-3-3, 4-4-2, or 4-2-3-1). Prioritize high-rated players in their preferred positions. Include full chemistry details (league, nation, team).
+      1.  ${formationInstruction} Prioritize high-rated players in their preferred positions. Include full chemistry details (league, nation, team).
       2.  Identify the weakest players in that starting lineup.
       3.  Suggest specific, affordable player upgrades for those weak positions that are within the user's budget. Include the new player's name, league, nation, and club.
       4.  Provide a brief summary of your strategy.

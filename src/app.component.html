@@ -58,10 +58,25 @@
           <div class="mt-1 relative rounded-md shadow-sm">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                 <path d="M8.433 7.418c.158-.103.346-.196.567-.267v1.698a2.5 2.5 0 00-1.134 0v-1.43zM1.166 11.898c1.011.458 2.22.735 3.513.87v-1.63a3.001 3.001 0 01-3.513-.24zM10 2a8 8 0 100 16 8 8 0 000-16zM3.528 6.012c-1.293.135-2.502.412-3.513.87v1.63a3.001 3.001 0 013.513-.24V6.012zM7.866 12.93c.158.103.346.196.567.267v-1.698a2.5 2.5 0 00-1.134 0v1.43zm3.268.267c.22-.07.408-.164.566-.267v-1.43a2.5 2.5 0 00-1.133 0v1.698zM15.34 11.108a3.001 3.001 0 01-3.513.24v1.63c1.293-.135 2.502-.412 3.513-.87v-1.63zM15.34 6.882a3.001 3.001 0 01-3.513-.24V5.012c1.293.135 2.502.412 3.513.87v1.63zM11.134 9.082a2.5 2.5 0 00-1.134 0V7.65c.22.07.408.164.566.267v1.165z" />
+                 <path d="M8.433 7.418c.158-.103.346-.196.567-.267v1.698a2.5 2.5 0 00-1.134 0v-1.43zM1.166 11.898c.101.458 2.22.735 3.513.87v-1.63a3.001 3.001 0 01-3.513-.24zM10 2a8 8 0 100 16 8 8 0 000-16zM3.528 6.012c-1.293.135-2.502.412-3.513.87v1.63a3.001 3.001 0 013.513-.24V6.012zM7.866 12.93c.158.103.346.196.567.267v-1.698a2.5 2.5 0 00-1.134 0v1.43zm3.268.267c.22-.07.408-.164.566-.267v-1.43a2.5 2.5 0 00-1.133 0v1.698zM15.34 11.108a3.001 3.001 0 01-3.513.24v1.63c1.293-.135 2.502-.412 3.513-.87v-1.63zM15.34 6.882a3.001 3.001 0 01-3.513-.24V5.012c1.293.135 2.502.412 3.513.87v1.63zM11.134 9.082a2.5 2.5 0 00-1.134 0V7.65c.22.07.408.164.566.267v1.165z" />
               </svg>
             </div>
             <input type="number" name="coin-balance" id="coin-balance" class="focus:ring-green-500 focus:border-green-500 block w-full pl-10 sm:text-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-md" placeholder="50000" [value]="coinBalance()" (input)="updateCoinBalance($event)">
+          </div>
+        </div>
+
+        <div>
+          <label for="formation-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Preferred Formation</label>
+          <div class="mt-1">
+            <select name="formation-select" id="formation-select" 
+                    class="focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-md" 
+                    [value]="preferredFormation()" 
+                    (change)="updatePreferredFormation($event)">
+              <option value="">Best Possible (AI Recommended)</option>
+              @for(formation of formations; track formation) {
+                <option [value]="formation">{{ formation }}</option>
+              }
+            </select>
           </div>
         </div>
 
@@ -355,7 +370,7 @@
                         [disabled]="playersToCompare().length >= 2 && !isPlayerSelected(player)"
                         (change)="togglePlayerComparison(player)">
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
+                  <td class="px-6 py-4">
                     <div class="flex items-center">
                         <div class="flex-shrink-0 h-10 w-10">
                             <img class="h-10 w-10 rounded-full object-cover bg-gray-200 dark:bg-gray-700" [src]="player.imageUrl" [alt]="player.Name"
@@ -364,13 +379,29 @@
                         <div class="ml-4">
                             <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ player.Name }}</div>
                             <div class="text-sm text-gray-500 dark:text-gray-400">{{ player.Rarity }}</div>
+                            <div class="flex items-center flex-wrap gap-1 mt-1">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                                    {{ player['Preferred Position'] }}
+                                </span>
+                                @if (player['Alternate Positions']) {
+                                    @for (altPos of player['Alternate Positions'].split(','); track $index) {
+                                        @if (altPos.trim()) {
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                                                {{ altPos.trim() }}
+                                            </span>
+                                        }
+                                    }
+                                }
+                            </div>
                         </div>
                     </div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <span class="text-lg font-bold">{{ player.Rating }}</span>
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{{ player['Preferred Position'] }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    {{ player['Preferred Position'] }}
+                  </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-yellow-600 dark:text-yellow-400">
                     {{ player.ExternalPrice === '-- NA --' ? 'N/A' : formatNumber(player.ExternalPrice) }}
                   </td>
