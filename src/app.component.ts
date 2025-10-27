@@ -13,6 +13,10 @@ const THEME_KEY = 'fut-squad-improver-theme';
 // Type for sortable columns to ensure type safety
 type SortableColumn = 'Name' | 'Rating' | 'Preferred Position' | 'ExternalPrice' | 'Team';
 
+interface SortCriterion {
+  column: SortableColumn;
+  direction: 'asc' | 'desc';
+}
 
 @Component({
   selector: 'app-root',
@@ -62,8 +66,7 @@ export class AppComponent {
   tradeableFilter = signal<'all' | 'tradeable' | 'untradeable'>('all');
 
   // Signals for sorting
-  sortColumn = signal<SortableColumn>('Rating');
-  sortDirection = signal<'asc' | 'desc'>('desc');
+  sortCriteria = signal<SortCriterion[]>([{ column: 'Rating', direction: 'desc' }]);
 
   // Signals for comparison
   playersToCompare = signal<Player[]>([]);
@@ -157,32 +160,39 @@ export class AppComponent {
     }
     
     // --- Sorting ---
-    const column = this.sortColumn();
-    const direction = this.sortDirection();
+    const criteria = this.sortCriteria();
+    if (!criteria.length) {
+        return filtered;
+    }
 
     return filtered.sort((a, b) => {
-        const valA = a[column];
-        const valB = b[column];
+        for (const { column, direction } of criteria) {
+            const valA = a[column];
+            const valB = b[column];
 
-        let comparison = 0;
+            let comparison = 0;
 
-        switch (column) {
-            case 'Rating':
-                comparison = Number(valA) - Number(valB);
-                break;
-            case 'ExternalPrice':
-                const priceA = valA.trim() !== '-- NA --' && !isNaN(Number(valA)) ? Number(valA) : -1;
-                const priceB = valB.trim() !== '-- NA --' && !isNaN(Number(valB)) ? Number(valB) : -1;
-                comparison = priceA - priceB;
-                break;
-            case 'Name':
-            case 'Preferred Position':
-            case 'Team':
-                comparison = String(valA).localeCompare(String(valB));
-                break;
+            switch (column) {
+                case 'Rating':
+                    comparison = Number(valA) - Number(valB);
+                    break;
+                case 'ExternalPrice':
+                    const priceA = valA.trim() !== '-- NA --' && !isNaN(Number(valA)) ? Number(valA) : -1;
+                    const priceB = valB.trim() !== '-- NA --' && !isNaN(Number(valB)) ? Number(valB) : -1;
+                    comparison = priceA - priceB;
+                    break;
+                case 'Name':
+                case 'Preferred Position':
+                case 'Team':
+                    comparison = String(valA).localeCompare(String(valB));
+                    break;
+            }
+
+            if (comparison !== 0) {
+                return direction === 'asc' ? comparison : -comparison;
+            }
         }
-
-        return direction === 'asc' ? comparison : -comparison;
+        return 0; // All criteria are equal
     });
   });
 
@@ -566,24 +576,54 @@ export class AppComponent {
     resetInput('max-price-filter', '20000000');
   }
 
-  sortData(column: SortableColumn): void {
-    if (this.sortColumn() === column) {
-      this.sortDirection.update(dir => (dir === 'asc' ? 'desc' : 'asc'));
-    } else {
-      this.sortColumn.set(column);
-      // Default sort direction for new columns
-      if (column === 'Rating' || column === 'ExternalPrice') {
-          this.sortDirection.set('desc');
+  sortData(column: SortableColumn, event: MouseEvent): void {
+    const isShiftPressed = event.shiftKey;
+    const currentCriteria = this.sortCriteria();
+    const existingCriterionIndex = currentCriteria.findIndex(c => c.column === column);
+
+    if (isShiftPressed) {
+      if (existingCriterionIndex > -1) {
+        // If it exists, toggle its direction
+        this.sortCriteria.update(criteria => {
+          const newCriteria = [...criteria];
+          const existing = newCriteria[existingCriterionIndex];
+          newCriteria[existingCriterionIndex] = { ...existing, direction: existing.direction === 'asc' ? 'desc' : 'asc' };
+          return newCriteria;
+        });
       } else {
-          this.sortDirection.set('asc');
+        // If it doesn't exist, add it
+        const defaultDirection = (column === 'Rating' || column === 'ExternalPrice') ? 'desc' : 'asc';
+        this.sortCriteria.update(criteria => [...criteria, { column, direction: defaultDirection }]);
+      }
+    } else {
+      // Not a shift click
+      if (existingCriterionIndex > -1 && currentCriteria.length === 1) {
+        // It's the only criterion, so just toggle it
+        const existing = currentCriteria[existingCriterionIndex];
+        this.sortCriteria.set([{ column, direction: existing.direction === 'asc' ? 'desc' : 'asc' }]);
+      } else {
+        // It's a new primary sort
+        const defaultDirection = (column === 'Rating' || column === 'ExternalPrice') ? 'desc' : 'asc';
+        this.sortCriteria.set([{ column, direction: defaultDirection }]);
       }
     }
   }
+  
+  getSortState(column: SortableColumn): { direction: 'asc' | 'desc' | null, priority: number | null } {
+    const criteria = this.sortCriteria();
+    const index = criteria.findIndex(c => c.column === column);
+    if (index > -1) {
+        return {
+            direction: criteria[index].direction,
+            // Only show priority number if there are multiple sort criteria
+            priority: criteria.length > 1 ? index + 1 : null
+        };
+    }
+    return { direction: null, priority: null };
+  }
+
 
   getSortTooltip(column: SortableColumn): string {
-    const currentSortColumn = this.sortColumn();
-    const currentSortDirection = this.sortDirection();
-    
     const friendlyColumnName = (col: SortableColumn): string => {
         switch (col) {
             case 'Preferred Position': return 'Position';
@@ -593,15 +633,18 @@ export class AppComponent {
     };
 
     const name = friendlyColumnName(column);
+    const state = this.getSortState(column);
 
-    if (currentSortColumn === column) {
-      if (currentSortDirection === 'desc') {
-        return `Sorted by ${name} (Descending). Click to sort ascending.`;
-      } else {
-        return `Sorted by ${name} (Ascending). Click to sort descending.`;
-      }
+    if (state.direction) {
+        const directionText = state.direction === 'desc' ? 'Descending' : 'Ascending';
+        let tooltip = `Sorted by ${name} (${directionText}).`;
+        if (state.priority) {
+            tooltip += ` Priority ${state.priority}.`;
+        }
+        tooltip += ` Click to sort only by this column. Shift-click to adjust multi-sort.`;
+        return tooltip;
     } else {
-      return `Click to sort by ${name}.`;
+      return `Click to sort by ${name}. Shift-click to add to multi-sort.`;
     }
   }
 

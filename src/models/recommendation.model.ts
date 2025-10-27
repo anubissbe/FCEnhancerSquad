@@ -26,6 +26,7 @@ export interface Upgrade {
     league: string;
     nation: string;
     club: string;
+    playstyles?: string[];
   };
   approximatePrice: number;
   reason: string;

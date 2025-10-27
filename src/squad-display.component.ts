@@ -100,7 +100,11 @@ export class SquadDisplayComponent {
   readonly placeholderImageUrl = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e5e7eb'%3E%3Cpath fill-rule='evenodd' d='M18.685 19.097A9.723 9.723 0 0021.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 003.065 7.097A9.716 9.716 0 0012 21.75a9.716 9.716 0 006.685-2.653zm-12.54-1.285A7.486 7.486 0 0112 15a7.486 7.486 0 015.855 2.812A8.224 8.224 0 0112 20.25a8.224 8.224 0 01-5.855-2.438zM15.75 9a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z' clip-rule='evenodd' /%3E%3C/svg%3E`;
 
   positionedPlayers = computed<PositionedPlayer[]>(() => {
-    const players = this.lineup().players;
+    const lineup = this.lineup();
+    if (!lineup?.players?.length) {
+      return [];
+    }
+    const players = lineup.players;
 
     const initialPositions = players.map(player => {
         const position = player.position.toUpperCase().trim();
@@ -123,9 +127,6 @@ export class SquadDisplayComponent {
         const key = `${p.top}-${p.left}`;
         const total = positionCounts.get(key) || 1;
         if (total > 1) {
-            // FIX: The original code used a non-existent 'index' variable.
-            // This logic gets the current index for players sharing the same position,
-            // calculates an offset to spread them out, and then increments the index for the next player.
             const index = assignedIndexes.get(key) || 0;
             // Spread players out from the center of the original position
             const offset = (index - (total - 1) / 2) * 17;
