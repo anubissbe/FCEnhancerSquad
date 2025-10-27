@@ -33,7 +33,7 @@ export class GeminiService {
     }
 
     // Fetch the knowledge base
-    const knowledgeBase = await this.knowledgeBaseService.getKnowledgeBase();
+    const knowledgeBase = this.knowledgeBaseService.getKnowledgeBase();
     
     // Filter for relevant player data to keep the prompt concise
     const relevantPlayers = players.map(p => ({

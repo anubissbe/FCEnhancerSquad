@@ -198,7 +198,7 @@ export class AppComponent {
   clubStats = computed(() => {
     const allPlayers = this.players();
     if (allPlayers.length === 0) {
-      return { averageRating: 0, minPrice: 0, maxPrice: 0 };
+      return { averageRating: 0, minPrice: 0, maxPrice: 0, playerDataMapSize: this.playerDataService.getPlayerDataMap().size };
     }
 
     let totalRating = 0;
@@ -229,6 +229,7 @@ export class AppComponent {
       averageRating: averageRating,
       minPrice: minPrice === Infinity ? 0 : minPrice,
       maxPrice: maxPrice,
+      playerDataMapSize: this.playerDataService.getPlayerDataMap().size
     };
   });
 
@@ -295,164 +296,158 @@ export class AppComponent {
 
   async parseCsv(csvData: string): Promise<void> {
     try {
-      // 1. Sanitize input: Remove BOM if present and trim whitespace
       if (csvData.startsWith('\uFEFF')) {
         csvData = csvData.substring(1);
       }
       csvData = csvData.trim();
+      
+      const lines = csvData.split(/\r\n|\n/);
 
-      // 2. Robust state-machine parser: handles quoted fields, newlines in fields, and escaped quotes
-      const rows: string[][] = [];
-      let currentRow: string[] = [];
-      let currentField = '';
-      let inQuotes = false;
-
-      for (let i = 0; i < csvData.length; i++) {
-        const char = csvData[i];
-        const nextChar = csvData[i + 1];
-
-        if (inQuotes) {
-          if (char === '"' && nextChar === '"') { // Escaped quote ("")
-            currentField += '"';
-            i++; // Skip the next quote
-          } else if (char === '"') { // End of quoted field
-            inQuotes = false;
-          } else {
-            currentField += char; // Character inside quoted field
-          }
-        } else { // Not in a quoted field
-          if (char === '"') {
-            inQuotes = true;
-          } else if (char === ',') {
-            currentRow.push(currentField);
-            currentField = '';
-          } else if (char === '\r' && nextChar === '\n') { // CRLF line ending
-            currentRow.push(currentField);
-            rows.push(currentRow);
-            currentRow = [];
-            currentField = '';
-            i++; // Skip the \n
-          } else if (char === '\n') { // LF line ending
-            currentRow.push(currentField);
-            rows.push(currentRow);
-            currentRow = [];
-            currentField = '';
-          } else {
-            currentField += char;
-          }
-        }
-      }
-      // Add the last field and row after the loop
-      currentRow.push(currentField);
-      rows.push(currentRow);
-
-      // 3. Validate structure: Check for headers and sufficient data rows
-      if (rows.length < 2 || (rows.length === 1 && rows[0].every(field => field === ''))) {
+      if (lines.length < 2 || (lines.length === 1 && lines[0].trim() === '')) {
         this.error.set('CSV file is empty or has no data rows.');
         this.players.set([]);
         return;
       }
+
+      const splitter = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
+      const rawHeaders = lines[0].split(splitter).map(h => h.trim().replace(/^"|"$/g, '').replace(/\uFEFF/g, ''));
+
+      const normalizationMap: { [key: string]: keyof Player } = {
+          'player name': 'Name',
+          'name': 'Name',
+          'rating': 'Rating',
+          'rarity': 'Rarity',
+          'preferred position': 'Preferred Position',
+          'position': 'Preferred Position',
+          'pos': 'Preferred Position',
+          'nation': 'Nation',
+          'league': 'League',
+          'team': 'Team',
+          'club': 'Team',
+          'price limits': 'Price Limits',
+          'last sale price': 'Last Sale Price',
+          'discard value': 'Discard Value',
+          'untradeable': 'Untradeable',
+          'loans': 'Loans',
+          'definitionid': 'DefinitionId',
+          'definition id': 'DefinitionId',
+          'player id': 'DefinitionId',
+          'id': 'DefinitionId',
+          'isduplicate': 'IsDuplicate',
+          'duplicate': 'IsDuplicate',
+          'isinactive11': 'IsInActive11',
+          'in active 11': 'IsInActive11',
+          'alternate positions': 'Alternate Positions',
+          'alt positions': 'Alternate Positions',
+          'externalprice': 'ExternalPrice',
+          'price': 'ExternalPrice',
+      };
+
+      const canonicalHeaders: (keyof Player)[] = [
+          'Name', 'Rating', 'Rarity', 'Preferred Position', 'Nation', 'League', 'Team', 'Price Limits', 
+          'Last Sale Price', 'Discard Value', 'Untradeable', 'Loans', 'DefinitionId', 'IsDuplicate', 
+          'IsInActive11', 'Alternate Positions', 'ExternalPrice'
+      ];
+
+      const headerIndexMap: Partial<{ [key in keyof Player]: number }> = {};
+      const foundCanonicalHeaders: Set<keyof Player> = new Set();
+
+      rawHeaders.forEach((header, index) => {
+          const lowerCaseHeader = header.toLowerCase();
+          const normalizedHeader = normalizationMap[lowerCaseHeader];
+
+          if (normalizedHeader && !foundCanonicalHeaders.has(normalizedHeader)) {
+              headerIndexMap[normalizedHeader] = index;
+              foundCanonicalHeaders.add(normalizedHeader);
+          } else if (canonicalHeaders.includes(header as keyof Player) && !foundCanonicalHeaders.has(header as keyof Player)) {
+              const canonical = header as keyof Player;
+              headerIndexMap[canonical] = index;
+              foundCanonicalHeaders.add(canonical);
+          }
+      });
       
-      const headers = rows[0].map(h => h.trim());
-      const dataRows = rows.slice(1);
-      
-      const requiredHeaders = ['Name', 'Rating', 'Preferred Position', 'ExternalPrice', 'DefinitionId'];
-      const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+      const requiredHeaders: (keyof Player)[] = ['Name', 'DefinitionId'];
+      const missingHeaders = requiredHeaders.filter(h => headerIndexMap[h] === undefined);
 
       if (missingHeaders.length > 0) {
-          this.error.set(`Invalid CSV format. Missing required columns: ${missingHeaders.join(', ')}`);
+          this.error.set(`Invalid CSV format. Missing required columns: ${missingHeaders.join(', ')}. Please check your file.`);
           this.players.set([]);
           return;
       }
-
-      // 4. Process data rows with per-row validation
-      const playerArray: Player[] = [];
-      const headerMap = headers.reduce((acc, header, index) => {
-        if (header) { // Ensure header is not empty
-          acc[header] = index;
-        }
-        return acc;
-      }, {} as {[key: string]: number});
-
-      for (let i = 0; i < dataRows.length; i++) {
-        const values = dataRows[i];
-        const rowNumber = i + 2; // CSV is 1-indexed, plus header row
-
-        // Skip empty lines that might exist at the end of the file
-        if (values.length === 1 && values[0].trim() === '') {
-            continue;
-        }
-
-        if (values.length !== headers.length) {
-            console.warn(`Skipping malformed CSV row ${rowNumber}: Expected ${headers.length} fields, but found ${values.length}. Content: "${values.join(',')}"`);
-            continue;
-        }
-        
-        const player = {} as any;
-        for (const header of headers) {
-            if (header && headerMap[header] !== undefined) {
-                player[header] = values[headerMap[header]].trim();
-            }
-        }
-
-        if (!player.Name || !player.Rating) {
-            console.warn(`Skipping player on row ${rowNumber} due to missing Name or Rating.`);
-            continue;
-        }
-
-        const rating = parseInt(player.Rating, 10);
-        if (isNaN(rating) || rating < 0 || rating > 99) {
-            console.warn(`Skipping player "${player.Name}" on row ${rowNumber} due to invalid rating: "${player.Rating}".`);
-            continue;
-        }
-
-        // Generate the Futwiz face image URL or use a placeholder
-        if (player.DefinitionId) {
-            player.imageUrl = `https://www.futwiz.com/assets/img/fc26/faces/${player.DefinitionId}.png`;
-        } else {
-            player.imageUrl = this.placeholderImageUrl;
-        }
-        
-        playerArray.push(player as Player);
-      }
       
-      // 5. Enrich player data
-      if (playerArray.length > 0) {
-        try {
-            const fullPlayerDataMap = await this.playerDataService.getPlayerDataMap();
-            const enrichedPlayers = playerArray.map(player => {
-                const dbPlayer = fullPlayerDataMap.get(player.DefinitionId);
-                // Create a new object to ensure all potential Player properties are defined.
-                const newPlayer: Player = {
-                    ...player,
-                    Pace: dbPlayer?.Pace,
-                    Shooting: dbPlayer?.Shooting,
-                    Passing: dbPlayer?.Passing,
-                    Dribbling: dbPlayer?.Dribbling,
-                    Defending: dbPlayer?.Defending,
-                    Physicality: dbPlayer?.Physicality,
-                    PlayStylePlus: dbPlayer?.PlayStylePlus,
-                    Archetype: dbPlayer?.Archetype,
-                    'Tactical Intelligence': dbPlayer?.TacticalIntelligence,
-                };
-                return newPlayer;
-            });
-            this.players.set(enrichedPlayers);
-        } catch (enrichError) {
-            console.error('Failed to fetch or process player database:', enrichError);
-            // Set players without enrichment if the database fails
-            this.players.set(playerArray); 
-            // Optionally set an error to inform the user
-            this.error.set('Could not load detailed player stats. Displaying basic info from CSV.');
-        }
-      } else {
-        this.players.set([]); // No players parsed
+      const enrichedPlayers: Player[] = [];
+      const dataRows = lines.slice(1);
+      const fullPlayerDataMap = this.playerDataService.getPlayerDataMap();
+
+      for (const line of dataRows) {
+          if (line.trim() === '') continue;
+          
+          const values = line.split(splitter).map(v => v.trim().replace(/^"|"$/g, ''));
+          
+          if (values.length < rawHeaders.length) continue;
+
+          const csvPlayer: Partial<Player> = {};
+          for (const key of canonicalHeaders) {
+              const index = headerIndexMap[key];
+              if (index !== undefined && values[index] !== undefined) {
+                  (csvPlayer as any)[key] = values[index];
+              }
+          }
+
+          if (!csvPlayer.Name || !csvPlayer.DefinitionId) {
+              continue;
+          }
+
+          let cleanDefinitionId = (csvPlayer.DefinitionId || '').trim();
+          const numericId = parseInt(cleanDefinitionId, 10);
+          if (!isNaN(numericId)) {
+              cleanDefinitionId = numericId.toString();
+          }
+          
+          const dbPlayer = fullPlayerDataMap.get(cleanDefinitionId);
+          
+          const finalPlayer: Player = {
+            Name: csvPlayer.Name || '',
+            Rating: csvPlayer.Rating || '0',
+            Rarity: csvPlayer.Rarity || '',
+            'Preferred Position': csvPlayer['Preferred Position'] || '',
+            Nation: csvPlayer.Nation || '',
+            League: csvPlayer.League || '',
+            Team: csvPlayer.Team || '',
+            'Price Limits': csvPlayer['Price Limits'] || '',
+            'Last Sale Price': csvPlayer['Last Sale Price'] || '',
+            'Discard Value': csvPlayer['Discard Value'] || '',
+            Untradeable: csvPlayer.Untradeable || 'false',
+            Loans: csvPlayer.Loans || 'false',
+            DefinitionId: cleanDefinitionId,
+            IsDuplicate: csvPlayer.IsDuplicate || 'false',
+            IsInActive11: csvPlayer.IsInActive11 || 'false',
+            'Alternate Positions': csvPlayer['Alternate Positions'] || '',
+            ExternalPrice: csvPlayer.ExternalPrice || '-- NA --',
+            imageUrl: cleanDefinitionId ? `https://www.futwiz.com/assets/img/fc26/faces/${cleanDefinitionId}.png` : this.placeholderImageUrl,
+            hasDetailedStats: !!dbPlayer,
+            ...(dbPlayer && {
+                Pace: dbPlayer.Pace,
+                Shooting: dbPlayer.Shooting,
+                Passing: dbPlayer.Passing,
+                Dribbling: dbPlayer.Dribbling,
+                Defending: dbPlayer.Defending,
+                Physicality: dbPlayer.Physicality,
+                PlayStylePlus: dbPlayer.PlayStylePlus,
+                Archetype: dbPlayer.Archetype,
+                'Tactical Intelligence': dbPlayer.TacticalIntelligence
+            })
+          };
+
+          enrichedPlayers.push(finalPlayer);
       }
 
-      if (this.players().length === 0 && dataRows.some(r => r.length > 1 || r[0].trim() !== '')) {
+      this.players.set(enrichedPlayers);
+
+      if (this.players().length === 0 && dataRows.some(r => r.trim() !== '')) {
           this.error.set('No valid player data could be parsed. Please check the CSV file format and content.');
-      } else if (!this.error()) {
-          this.error.set(''); // Clear previous errors on success
+      } else {
+          this.error.set('');
       }
 
     } catch (e) {

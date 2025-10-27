@@ -26,4 +26,5 @@ export interface Player {
   PlayStylePlus?: string[];
   Archetype?: string;
   'Tactical Intelligence'?: string;
+  hasDetailedStats?: boolean;
 }
