@@ -6,7 +6,6 @@ import { GeminiService } from './services/gemini.service';
 import { SquadDisplayComponent } from './squad-display.component';
 import { PlayerComparisonComponent } from './player-comparison.component';
 import { PlayerDataService } from './services/player-data.service';
-import { PlayerData } from './models/player-data.model';
 
 const THEME_KEY = 'fut-squad-improver-theme';
 
@@ -423,18 +422,19 @@ export class AppComponent {
             const fullPlayerDataMap = await this.playerDataService.getPlayerDataMap();
             const enrichedPlayers = playerArray.map(player => {
                 const dbPlayer = fullPlayerDataMap.get(player.DefinitionId);
-                if (dbPlayer) {
-                    return {
-                        ...player,
-                        Pace: dbPlayer.Pace,
-                        Shooting: dbPlayer.Shooting,
-                        Passing: dbPlayer.Passing,
-                        Dribbling: dbPlayer.Dribbling,
-                        Defending: dbPlayer.Defending,
-                        Physicality: dbPlayer.Physicality
-                    };
-                }
-                return player;
+                // Create a new object to ensure all potential Player properties are defined.
+                const newPlayer: Player = {
+                    ...player,
+                    Pace: dbPlayer?.Pace,
+                    Shooting: dbPlayer?.Shooting,
+                    Passing: dbPlayer?.Passing,
+                    Dribbling: dbPlayer?.Dribbling,
+                    Defending: dbPlayer?.Defending,
+                    Physicality: dbPlayer?.Physicality,
+                    PlayStylePlus: dbPlayer?.PlayStylePlus,
+                    Archetype: dbPlayer?.Archetype,
+                };
+                return newPlayer;
             });
             this.players.set(enrichedPlayers);
         } catch (enrichError) {

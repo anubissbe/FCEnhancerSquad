@@ -10,6 +10,8 @@ interface MappedPlayerData {
     Dribbling: string;
     Defending: string;
     Physicality: string;
+    PlayStylePlus?: string[];
+    Archetype?: string;
 }
 
 
@@ -43,7 +45,9 @@ export class PlayerDataService {
           Passing: player.a,
           Dribbling: player.d,
           Defending: player.e,
-          Physicality: player.h
+          Physicality: player.h,
+          PlayStylePlus: player.ps,
+          Archetype: player.at
       });
     }
     this.playerDataMap.set(newMap);

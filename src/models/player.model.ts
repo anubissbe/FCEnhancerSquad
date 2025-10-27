@@ -23,4 +23,6 @@ export interface Player {
   Dribbling?: string;
   Defending?: string;
   Physicality?: string;
+  PlayStylePlus?: string[];
+  Archetype?: string;
 }

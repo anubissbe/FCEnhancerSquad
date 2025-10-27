@@ -7,4 +7,6 @@ export interface PlayerData {
   d: string; // Dribbling
   e: string; // Defending
   h: string; // Physicality
+  ps?: string[]; // PlayStylePlus
+  at?: string; // Archetype
 }
