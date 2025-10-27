@@ -12,6 +12,7 @@ interface MappedPlayerData {
     Physicality: string;
     PlayStylePlus?: string[];
     Archetype?: string;
+    TacticalIntelligence?: string;
 }
 
 
@@ -47,7 +48,8 @@ export class PlayerDataService {
           Defending: player.e,
           Physicality: player.h,
           PlayStylePlus: player.ps,
-          Archetype: player.at
+          Archetype: player.at,
+          TacticalIntelligence: player.ti
       });
     }
     this.playerDataMap.set(newMap);

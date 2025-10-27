@@ -25,4 +25,5 @@ export interface Player {
   Physicality?: string;
   PlayStylePlus?: string[];
   Archetype?: string;
+  'Tactical Intelligence'?: string;
 }

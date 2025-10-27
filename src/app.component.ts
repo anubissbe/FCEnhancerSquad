@@ -433,6 +433,7 @@ export class AppComponent {
                     Physicality: dbPlayer?.Physicality,
                     PlayStylePlus: dbPlayer?.PlayStylePlus,
                     Archetype: dbPlayer?.Archetype,
+                    'Tactical Intelligence': dbPlayer?.TacticalIntelligence,
                 };
                 return newPlayer;
             });

@@ -9,4 +9,5 @@ export interface PlayerData {
   h: string; // Physicality
   ps?: string[]; // PlayStylePlus
   at?: string; // Archetype
+  ti?: string; // Tactical Intelligence
 }

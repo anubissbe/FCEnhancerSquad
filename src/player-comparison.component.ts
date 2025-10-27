@@ -144,6 +144,10 @@ export class PlayerComparisonComponent {
       detailedStats.push(this.createStat('Physicality', this.parseStat(p1.Physicality), this.parseStat(p2.Physicality), 'higher'));
     }
 
+    if (p1['Tactical Intelligence'] && p2['Tactical Intelligence']) {
+        detailedStats.push(this.createStat('Tactical Int.', this.parseStat(p1['Tactical Intelligence']), this.parseStat(p2['Tactical Intelligence']), 'higher'));
+    }
+
     return { basicStats, detailedStats };
   });
 
