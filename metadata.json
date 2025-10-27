@@ -1,5 +1,5 @@
 {
-  "name": "FUT Squad Improver",
-  "description": "Upload your FUT club data from a CSV file, enter your coin balance, and get AI-powered recommendations for squad improvements, including lineup suggestions and player upgrades.",
+  "name": "FC26 Player Database",
+  "description": "An AI-powered database for all players in FC26. Browse, filter, and compare players, with data generated and updated by AI.",
   "requestFramePermissions": []
 }
