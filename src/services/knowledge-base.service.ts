@@ -28,7 +28,7 @@ export interface KnowledgeBase {
   }[];
 }
 
-const KNOWLEDGE_BASE_DB: KnowledgeBase = {
+const KNOWLEDGE_BASE: KnowledgeBase = {
   "general_advice": "Welcome to FC 26! The meta has shifted towards more physical play, tactical intelligence, and role-specific players. Power Defending is key, and players with new PlayStyles like 'Second Wind+' or 'Box Crasher+' can single-handedly decide matches. Balanced squad building that leverages specific player archetypes is now the most effective path to victory.",
   "key_in_game_stats": [
     {
@@ -151,12 +151,15 @@ const KNOWLEDGE_BASE_DB: KnowledgeBase = {
 export class KnowledgeBaseService {
   private knowledgeBase = signal<KnowledgeBase | null>(null);
 
-  getKnowledgeBase(): KnowledgeBase {
-    if (this.knowledgeBase()) {
-      return this.knowledgeBase() as KnowledgeBase;
-    }
+  constructor() {
+    this.knowledgeBase.set(KNOWLEDGE_BASE);
+  }
 
-    this.knowledgeBase.set(KNOWLEDGE_BASE_DB);
-    return KNOWLEDGE_BASE_DB;
+  getKnowledgeBase(): KnowledgeBase {
+    const kb = this.knowledgeBase();
+    if (!kb) {
+      throw new Error('KnowledgeBaseService not initialized. Data not loaded.');
+    }
+    return kb;
   }
 }

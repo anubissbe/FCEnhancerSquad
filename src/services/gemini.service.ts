@@ -45,7 +45,16 @@ export class GeminiService {
         League: p.League,
         Nation: p.Nation,
         Untradeable: p.Untradeable,
-        ExternalPrice: p.ExternalPrice
+        ExternalPrice: p.ExternalPrice,
+        Pace: p.Pace,
+        Shooting: p.Shooting,
+        Passing: p.Passing,
+        Dribbling: p.Dribbling,
+        Defending: p.Defending,
+        Physicality: p.Physicality,
+        PlayStylePlus: p.PlayStylePlus,
+        Archetype: p.Archetype,
+        'Tactical Intelligence': p['Tactical Intelligence']
     }));
 
     const responseSchema = {

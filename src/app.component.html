@@ -203,8 +203,74 @@
             </div>
         }
 
+        <!-- Chemistry Hub -->
+        @if(chemistryData(); as chem) {
+            <div class="mb-6">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Chemistry Hub</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Nations -->
+                    <div>
+                        <h4 class="text-lg font-medium mb-3 text-gray-700 dark:text-gray-300">Top Nations</h4>
+                        <div class="space-y-3">
+                            @for(item of chem.nations; track item.name) {
+                                <div class="text-sm">
+                                    <div class="flex justify-between mb-1">
+                                        <span class="font-semibold">{{ item.name }}</span>
+                                        <span class="text-gray-500 dark:text-gray-400">{{ item.count }} Players</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                        <div class="bg-green-500 h-2 rounded-full" [style.width.%]="item.percentage"></div>
+                                    </div>
+                                </div>
+                            } @empty {
+                                <p class="text-sm text-gray-500 dark:text-gray-400">No nation data available.</p>
+                            }
+                        </div>
+                    </div>
+                    <!-- Leagues -->
+                    <div>
+                        <h4 class="text-lg font-medium mb-3 text-gray-700 dark:text-gray-300">Top Leagues</h4>
+                        <div class="space-y-3">
+                             @for(item of chem.leagues; track item.name) {
+                                <div class="text-sm">
+                                    <div class="flex justify-between mb-1">
+                                        <span class="font-semibold truncate pr-2">{{ item.name }}</span>
+                                        <span class="text-gray-500 dark:text-gray-400 flex-shrink-0">{{ item.count }} Players</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                        <div class="bg-teal-500 h-2 rounded-full" [style.width.%]="item.percentage"></div>
+                                    </div>
+                                </div>
+                            } @empty {
+                                 <p class="text-sm text-gray-500 dark:text-gray-400">No league data available.</p>
+                            }
+                        </div>
+                    </div>
+                    <!-- Clubs -->
+                    <div>
+                        <h4 class="text-lg font-medium mb-3 text-gray-700 dark:text-gray-300">Top Clubs</h4>
+                        <div class="space-y-3">
+                             @for(item of chem.clubs; track item.name) {
+                                <div class="text-sm">
+                                    <div class="flex justify-between mb-1">
+                                        <span class="font-semibold truncate pr-2">{{ item.name }}</span>
+                                        <span class="text-gray-500 dark:text-gray-400 flex-shrink-0">{{ item.count }} Players</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                        <div class="bg-yellow-500 h-2 rounded-full" [style.width.%]="item.percentage"></div>
+                                    </div>
+                                </div>
+                            } @empty {
+                                 <p class="text-sm text-gray-500 dark:text-gray-400">No club data available.</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
         <!-- Filter Controls -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-6 items-end">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-6 items-end pt-6 border-t border-gray-200 dark:border-gray-700">
           <div>
             <label for="name-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
             <input type="text" id="name-filter" (input)="updateNameFilter($event)" placeholder="Search by name..."

@@ -233,6 +233,51 @@ export class AppComponent {
     };
   });
 
+  chemistryData = computed(() => {
+    const players = this.players();
+    if (players.length === 0) {
+      return { nations: [], leagues: [], clubs: [] };
+    }
+
+    const countMap = (key: 'Nation' | 'League' | 'Team') => {
+      const counts = new Map<string, number>();
+      for (const player of players) {
+        const value = player[key];
+        if (value && value.trim() !== '') {
+            counts.set(value, (counts.get(value) || 0) + 1);
+        }
+      }
+      return counts;
+    };
+
+    const processCounts = (counts: Map<string, number>) => {
+      if (counts.size === 0) return [];
+      
+      const sorted = [...counts.entries()]
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count);
+
+      const maxCount = sorted[0].count;
+      
+      return sorted
+        .slice(0, 7) // Limit to top 7
+        .map(item => ({
+          ...item,
+          percentage: (item.count / maxCount) * 100
+        }));
+    };
+    
+    const nationCounts = countMap('Nation');
+    const leagueCounts = countMap('League');
+    const clubCounts = countMap('Team');
+
+    return {
+      nations: processCounts(nationCounts),
+      leagues: processCounts(leagueCounts),
+      clubs: processCounts(clubCounts)
+    };
+  });
+
   constructor() {
     try {
       this.isGeminiAvailable.set(!!(process && process.env && process.env.API_KEY));
